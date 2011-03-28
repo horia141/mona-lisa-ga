@@ -6,56 +6,7 @@
 
 #include "common.h"
 #include "image.h"
-
-/* float* */
-/* load_ppm(const char* ppm_path, int* image_width,int* image_height) */
-/* { */
-/*   #define TEXT_LINE_MAX_SIZE 1024 */
-
-/*   FILE*   ppm_file; */
-/*   char*   text_line; */
-/*   float*  image; */
-/*   int     width; */
-/*   int     height; */
-/*   int     color_r; */
-/*   int     color_g; */
-/*   int     color_b; */
-/*   int     i; */
-/*   int     j; */
-
-/*   ppm_file = fopen(ppm_path,"rt"); */
-/*   text_line = malloc(sizeof(char) * TEXT_LINE_MAX_SIZE); */
-
-/*   /\* Jump first two ines *\/ */
-
-/*   memset(text_line,0,TEXT_LINE_MAX_SIZE); */
-/*   fgets(text_line,TEXT_LINE_MAX_SIZE,ppm_file); */
-/*   memset(text_line,0,TEXT_LINE_MAX_SIZE); */
-/*   fgets(text_line,TEXT_LINE_MAX_SIZE,ppm_file); */
-/*   fscanf(ppm_file,"%d %d",&width,&height); */
-/*   fscanf(ppm_file,"%*d"); */
-
-/*   image = malloc(sizeof(float) * width * height * 4); */
-
-/*   for (i = 0; i < height; i++) { */
-/*     for (j = 0; j < width; j++) { */
-/*       fscanf(ppm_file,"%d %d %d",&color_r,&color_g,&color_b); */
-
-/*       image[(height - i - 1) * width * 4 + j * 4 + 0] = (float)color_r / 255.0; */
-/*       image[(height - i - 1) * width * 4 + j * 4 + 1] = (float)color_g / 255.0; */
-/*       image[(height - i - 1) * width * 4 + j * 4 + 2] = (float)color_b / 255.0; */
-/*       image[(height - i - 1) * width * 4 + j * 4 + 3] = 1.0f; */
-/*     } */
-/*   } */
-
-/*   free(text_line); */
-/*   fclose(ppm_file); */
-
-/*   *image_width = width; */
-/*   *image_height = height; */
-
-/*   return image; */
-/* } */
+#include "gastuff.h"
 
 void
 view_display()
@@ -77,10 +28,21 @@ view_display()
 void
 view_init()
 {
+  rectangle x[] = {(rectangle){{0,0,0.2,0.2},{0,1,0,1}},
+		   (rectangle){{0.4,0.4,0.2,0.2},{1,0,0,1}},
+		   (rectangle){{0.6,0.6,0.2,0.2},{0,0,1,1}}};
+  individual indi;
   image*  img;
   float*  texture;
 
-  img = image_from_ppm_t("MonaLisa.ppm");
+  indi.gene_cnt = 3;
+  indi.genes = malloc(sizeof(rectangle)*indi.gene_cnt);
+
+  memcpy(indi.genes,x,sizeof(rectangle)*indi.gene_cnt);
+
+
+
+  img = individual_to_image(&indi,64,64);
   texture = image_make_texture(img);
 
   glClearColor(0,0,0,0);

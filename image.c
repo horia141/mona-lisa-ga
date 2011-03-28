@@ -20,7 +20,7 @@ image_blank(
 {
   assert(rows > 0);
   assert(cols > 0);
-  assert(color_is_valid(c));
+  assert(color_is_valid(&c));
 
   image*  new_img;
   int     i;
@@ -146,7 +146,7 @@ image_set(
   assert(image_is_valid(img));
   assert(row >= 0 && row < img->rows);
   assert(col >= 0 && col < img->cols);
-  assert(color_is_valid(c));
+  assert(color_is_valid(&c));
 
   img->data[row * img->cols + col].r = c.r;
   img->data[row * img->cols + col].g = c.g;

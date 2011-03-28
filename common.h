@@ -15,7 +15,7 @@ struct _color
   float  a;
 };
 
-bool  color_is_valid(const color c);
+bool  color_is_valid(const color* c);
 
 struct _geometry
 {
@@ -25,10 +25,14 @@ struct _geometry
   float  c;
 };
 
+bool  geometry_is_valid(const geometry* g);
+
 struct _rectangle
 {
   geometry  geometry;
   color     color;
 };
+
+bool rectangle_is_valid(const rectangle* r);
 
 #endif
