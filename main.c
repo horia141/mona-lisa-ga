@@ -4,54 +4,58 @@
 #include <GL/glu.h>
 #include <GL/glut.h>
 
-float*
-load_ppm(const char* ppm_path, int* image_width,int* image_height)
-{
-  #define TEXT_LINE_MAX_SIZE 1024
+#include "common.h"
+#include "image.h"
 
-  FILE*   ppm_file;
-  char*   text_line;
-  float*  image;
-  int     width;
-  int     height;
-  int     color_r;
-  int     color_g;
-  int     color_b;
-  int     i;
-  int     j;
+/* float* */
+/* load_ppm(const char* ppm_path, int* image_width,int* image_height) */
+/* { */
+/*   #define TEXT_LINE_MAX_SIZE 1024 */
 
-  ppm_file = fopen(ppm_path,"rt");
-  text_line = malloc(sizeof(char) * TEXT_LINE_MAX_SIZE);
+/*   FILE*   ppm_file; */
+/*   char*   text_line; */
+/*   float*  image; */
+/*   int     width; */
+/*   int     height; */
+/*   int     color_r; */
+/*   int     color_g; */
+/*   int     color_b; */
+/*   int     i; */
+/*   int     j; */
 
-  /* Jump first two ines */
+/*   ppm_file = fopen(ppm_path,"rt"); */
+/*   text_line = malloc(sizeof(char) * TEXT_LINE_MAX_SIZE); */
 
-  memset(text_line,0,TEXT_LINE_MAX_SIZE);
-  fgets(text_line,TEXT_LINE_MAX_SIZE,ppm_file);
-  memset(text_line,0,TEXT_LINE_MAX_SIZE);
-  fgets(text_line,TEXT_LINE_MAX_SIZE,ppm_file);
-  fscanf(ppm_file,"%d %d",&width,&height);
-  fscanf(ppm_file,"%*d");
+/*   /\* Jump first two ines *\/ */
 
-  image = malloc(sizeof(float) * width * height * 3);
+/*   memset(text_line,0,TEXT_LINE_MAX_SIZE); */
+/*   fgets(text_line,TEXT_LINE_MAX_SIZE,ppm_file); */
+/*   memset(text_line,0,TEXT_LINE_MAX_SIZE); */
+/*   fgets(text_line,TEXT_LINE_MAX_SIZE,ppm_file); */
+/*   fscanf(ppm_file,"%d %d",&width,&height); */
+/*   fscanf(ppm_file,"%*d"); */
 
-  for (i = 0; i < height; i++) {
-    for (j = 0; j < width; j++) {
-      fscanf(ppm_file,"%d %d %d",&color_r,&color_g,&color_b);
+/*   image = malloc(sizeof(float) * width * height * 4); */
 
-      image[(height - i - 1) * width * 3 + j * 3 + 0] = (float)color_r / 255.0;
-      image[(height - i - 1) * width * 3 + j * 3 + 1] = (float)color_g / 255.0;
-      image[(height - i - 1) * width * 3 + j * 3 + 2] = (float)color_b / 255.0;
-    }
-  }
+/*   for (i = 0; i < height; i++) { */
+/*     for (j = 0; j < width; j++) { */
+/*       fscanf(ppm_file,"%d %d %d",&color_r,&color_g,&color_b); */
 
-  free(text_line);
-  fclose(ppm_file);
+/*       image[(height - i - 1) * width * 4 + j * 4 + 0] = (float)color_r / 255.0; */
+/*       image[(height - i - 1) * width * 4 + j * 4 + 1] = (float)color_g / 255.0; */
+/*       image[(height - i - 1) * width * 4 + j * 4 + 2] = (float)color_b / 255.0; */
+/*       image[(height - i - 1) * width * 4 + j * 4 + 3] = 1.0f; */
+/*     } */
+/*   } */
 
-  *image_width = width;
-  *image_height = height;
+/*   free(text_line); */
+/*   fclose(ppm_file); */
 
-  return image;
-}
+/*   *image_width = width; */
+/*   *image_height = height; */
+
+/*   return image; */
+/* } */
 
 void
 view_display()
@@ -73,9 +77,11 @@ view_display()
 void
 view_init()
 {
-  int     image_width;
-  int     image_height;
-  float*  image = load_ppm("MonaLisa.ppm",&image_width,&image_height);
+  image*  img;
+  float*  texture;
+
+  img = image_from_ppm_t("MonaLisa.ppm");
+  texture = image_make_texture(img);
 
   glClearColor(0,0,0,0);
   glColor3f(1,1,1);
@@ -87,13 +93,16 @@ view_init()
   glEnable(GL_TEXTURE_2D);
 
   glBindTexture(GL_TEXTURE_2D,42);
-  glPixelStorei(GL_UNPACK_ALIGNMENT,1); //Might ned to be 4.
+  glPixelStorei(GL_UNPACK_ALIGNMENT,1);
   glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);
   glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT);
   glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
   glTexEnvf(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_MODULATE);
-  glTexImage2D(GL_TEXTURE_2D,0,GL_RGB,image_width,image_height,0,GL_RGB,GL_FLOAT,image);
+  glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,image_get_cols(img),image_get_rows(img),0,GL_RGBA,GL_FLOAT,texture);
+
+  free(texture);
+  image_free(img);
 }
 
 int
