@@ -61,10 +61,10 @@ view_display()
   glBindTexture(GL_TEXTURE_2D,42);
 
   glBegin(GL_QUADS);
-  glTexCoord2f(0,0);glVertex2f(0,0);
-  glTexCoord2f(0,1);glVertex2f(0,1);
-  glTexCoord2f(1,1);glVertex2f(1,1);
-  glTexCoord2f(1,0);glVertex2f(1,0);
+  glTexCoord2f(0,1);glVertex2f(-0.5,-0.5);
+  glTexCoord2f(0,0);glVertex2f(-0.5, 0.5);
+  glTexCoord2f(1,0);glVertex2f( 0.5, 0.5);
+  glTexCoord2f(1,1);glVertex2f( 0.5,-0.5);
   glEnd();
 
   glFlush();
@@ -75,14 +75,14 @@ view_init()
 {
   int     image_rows;
   int     image_cols;
-  float*  image = load_ppm("Test.ppm",&image_rows,&image_cols);
+  float*  image = load_ppm("MonaLisa.ppm",&image_rows,&image_cols);
 
   glClearColor(0,0,0,0);
   glColor3f(1,1,1);
 
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
-  glRotatef(180,0,0,1);
+  //  glRotatef(180,0,0,1);
   glOrtho(-1,1,-1,1,-1,1);
   
   glEnable(GL_TEXTURE_2D);
@@ -91,10 +91,10 @@ view_init()
   glPixelStorei(GL_UNPACK_ALIGNMENT,1); //Might ned to be 4.
   glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);
   glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
   glTexEnvf(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_MODULATE);
-  glTexImage2D(GL_TEXTURE_2D,0,GL_RGB,image_cols,image_rows,0,GL_RGB,GL_FLOAT,image);
+  glTexImage2D(GL_TEXTURE_2D,0,GL_RGB,image_rows,image_cols,0,GL_RGB,GL_FLOAT,image);
 }
 
 int
