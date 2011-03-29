@@ -4,6 +4,50 @@
 
 #include "gastuff.h"
 
+struct _individual
+{
+  int         gene_cnt;
+  rectangle   genes[];
+};
+
+individual*
+individual_random(
+  int gene_cnt)
+{
+  assert(gene_cnt > 0);
+
+  individual*  new_indi;
+  int          i;
+
+  new_indi = malloc(sizeof(individual) + sizeof(rectangle) * gene_cnt);
+
+  new_indi->gene_cnt = gene_cnt;
+
+  for (i = 0; i < gene_cnt; i++) {
+    new_indi->genes[i].geometry.x = unirandom(0,0.94);
+    new_indi->genes[i].geometry.y = unirandom(0,0.94);
+    new_indi->genes[i].geometry.w = unirandom(0.05,1 - new_indi->genes[i].geometry.x);
+    new_indi->genes[i].geometry.h = unirandom(0.05,1 - new_indi->genes[i].geometry.y);
+    new_indi->genes[i].color.r = unirandom(0,1);
+    new_indi->genes[i].color.g = unirandom(0,1);
+    new_indi->genes[i].color.b = unirandom(0,1);
+    new_indi->genes[i].color.a = 1;
+  }
+
+  return new_indi;
+}
+
+void
+individual_free(
+  individual* indi)
+{
+  assert(individual_is_valid(indi));
+
+  indi->gene_cnt = -1;
+
+  free(indi);
+}
+
 bool
 individual_is_valid(
   const individual* indi)
@@ -18,10 +62,6 @@ individual_is_valid(
     return false;
   }
 
-  if (indi->genes == NULL) {
-    return false;
-  }
-  
   for (i = 0; i < indi->gene_cnt; i++) {
     if (!rectangle_is_valid(&indi->genes[i])) {
       return false;

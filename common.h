@@ -39,5 +39,6 @@ bool    rectangle_is_valid(const rectangle* r);
 float   max(float a, float b);
 float   min(float a, float b);
 int     clamp(int x, int min, int max);
+float   unirandom(float beg, float end);
 
 #endif

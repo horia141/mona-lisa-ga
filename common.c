@@ -125,3 +125,11 @@ clamp(
     return x;
   }
 }
+
+float
+unirandom(
+  float beg,
+  float end)
+{
+  return beg + (end - beg) * (random() / (float)RAND_MAX);
+}

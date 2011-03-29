@@ -9,21 +9,18 @@
 typedef struct _individual  individual;
 typedef struct _population  population;
 
-struct _individual
-{
-  int         gene_cnt;
-  rectangle*  genes;
-};
+individual*  individual_random(int cnt);
+void         individual_free(individual* indi);
+
+bool         individual_is_valid(const individual* indi);
+
+image*       individual_to_image(const individual* indi, int rows, int cols);
 
 struct _population
 {
   int          indi_cnt;
   individual*  indis;
 };
-
-bool    individual_is_valid(const individual* indi);
-
-image*  individual_to_image(const individual* indi, int rows, int cols);
 
 bool    population_is_valid(const population* pop);
 
