@@ -126,10 +126,37 @@ clamp(
   }
 }
 
+int
+unirandom_i(
+  int beg,
+  int end)
+{
+  assert(beg < end);
+
+  return beg + (random() % (end - beg));
+}
+
+
 float
-unirandom(
+unirandom_f(
   float beg,
   float end)
 {
+  assert(beg < end);
+
   return beg + (end - beg) * (random() / (float)RAND_MAX);
+}
+
+bool
+unirandom_b()
+{
+  int  tmp;
+
+  tmp = random() % 2;
+
+  if (tmp == 0) {
+    return true;
+  } else {
+    return false;
+  }
 }
