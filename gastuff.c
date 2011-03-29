@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <assert.h>
+#include <math.h>
 
 #include "gastuff.h"
 
@@ -45,8 +46,8 @@ individual_to_image(
   int     intersect_cnt;
   int     gene_x_scaled;
   int     gene_y_scaled;
-  int     gene_r_scaled;
-  int     gene_c_scaled;
+  int     gene_w_scaled;
+  int     gene_h_scaled;
   int     i;
   int     j;
   int     k;
@@ -62,13 +63,14 @@ individual_to_image(
       intersect_cnt = 0;
 
       for (k = 0; k < indi->gene_cnt; k++) {
-	gene_x_scaled = (int)(indi->genes[k].geometry.x * rows);
-	gene_y_scaled = (int)(indi->genes[k].geometry.y * cols);
-	gene_r_scaled = (int)(indi->genes[k].geometry.r * rows);
-	gene_c_scaled = (int)(indi->genes[k].geometry.c * cols);
+	/* Should precompute these. */
+	gene_x_scaled = clamp((int)floorf(indi->genes[k].geometry.x * cols),0,cols);
+	gene_y_scaled = clamp((int)floorf(indi->genes[k].geometry.y * rows),0,rows);
+	gene_w_scaled = clamp((int)floorf(indi->genes[k].geometry.w * cols),0,cols - gene_x_scaled);
+	gene_h_scaled = clamp((int)floorf(indi->genes[k].geometry.h * rows),0,rows - gene_y_scaled);
 
-	if (i >= gene_x_scaled && i <= gene_x_scaled + gene_r_scaled &&
-	    j >= gene_y_scaled && j <= gene_y_scaled + gene_c_scaled) {
+	if (i >= gene_y_scaled && i <= gene_y_scaled + gene_h_scaled &&
+	    j >= gene_x_scaled && j <= gene_x_scaled + gene_w_scaled) {
 	  color_sum.r += indi->genes[k].color.r;
 	  color_sum.g += indi->genes[k].color.g;
 	  color_sum.b += indi->genes[k].color.b;

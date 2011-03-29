@@ -15,17 +15,17 @@ struct _color
   float  a;
 };
 
-bool  color_is_valid(const color* c);
+bool    color_is_valid(const color* c);
 
 struct _geometry
 {
   float  x;
   float  y;
-  float  r;
-  float  c;
+  float  w;
+  float  h;
 };
 
-bool  geometry_is_valid(const geometry* g);
+bool    geometry_is_valid(const geometry* g);
 
 struct _rectangle
 {
@@ -33,6 +33,11 @@ struct _rectangle
   color     color;
 };
 
-bool rectangle_is_valid(const rectangle* r);
+bool    rectangle_is_valid(const rectangle* r);
+
+
+float   max(float a, float b);
+float   min(float a, float b);
+int     clamp(int x, int min, int max);
 
 #endif

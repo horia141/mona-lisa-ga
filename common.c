@@ -47,19 +47,19 @@ geometry_is_valid(
     return false;
   }
 
-  if (g->r < 0 || g->r > 1) {
+  if (g->w < 0 || g->w > 1) {
     return false;
   }
 
-  if (g->c < 0 || g->c > 1) {
+  if (g->h < 0 || g->h > 1) {
     return false;
   }
 
-  if (g->x + g->r < 0 || g->x + g->r > 1) {
+  if (g->x + g->w < 0 || g->x + g->w > 1) {
     return false;
   }
 
-  if (g->y + g->c < 0 || g->y + g->c > 1) {
+  if (g->y + g->h < 0 || g->y + g->h > 1) {
     return false;
   }
 
@@ -84,4 +84,44 @@ rectangle_is_valid(
   }
 
   return true;
+}
+
+
+float
+max(
+  float a,
+  float b)
+{
+  if (a > b) {
+    return a;
+  } else {
+    return b;
+  }
+}
+
+float
+min(
+  float a,
+  float b)
+{
+  if (a < b) {
+    return a;
+  } else {
+    return b;
+  }
+}
+
+int
+clamp(
+  int x,
+  int min,
+  int max)
+{
+  if (x < min) {
+    return min;
+  } else if (x > max) {
+    return max;
+  } else {
+    return x;
+  }
 }

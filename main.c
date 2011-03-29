@@ -30,17 +30,17 @@ view_init()
 {
   rectangle x[] = {(rectangle){{0,0,0.2,0.2},{0,1,0,1}},
 		   (rectangle){{0.4,0.4,0.2,0.2},{1,0,0,1}},
-		   (rectangle){{0.6,0.6,0.2,0.2},{0,0,1,1}}};
+		   (rectangle){{0.6,0.6,0.2,0.2},{0,0,1,1}},
+		   (rectangle){{0.3,0,0.2,0.1},{1,1,1,1}}};
+
   individual indi;
   image*  img;
   float*  texture;
 
-  indi.gene_cnt = 3;
+  indi.gene_cnt = 4;
   indi.genes = malloc(sizeof(rectangle)*indi.gene_cnt);
 
   memcpy(indi.genes,x,sizeof(rectangle)*indi.gene_cnt);
-
-
 
   img = individual_to_image(&indi,64,64);
   texture = image_make_texture(img);
