@@ -18,7 +18,7 @@ bool         individual_is_valid(const individual* indi);
 image*       individual_to_image(const individual* indi, int rows, int cols);
 individual*  individual_crossover(individual* target, const individual* parent1, const individual* parent2, const crossmask* mask);
 
-population*  population_random(int indi_cnt, int gene_cnt);
+population*  population_random(int indi_cnt, int gene_cnt, int lambda, int mu, image* target);
 void         population_free(population* pop);
 
 bool         population_is_valid(const population* pop);
@@ -31,7 +31,7 @@ void         crossmask_free(crossmask* mask);
 
 bool         crossmask_is_valid(const crossmask* mask);
 
-int          crossmask_get_flags_cnt(const crossmask* mask);
+int          crossmask_get_flag_cnt(const crossmask* mask);
 bool         crossmask_get(const crossmask* mask, int i);
 
 #endif

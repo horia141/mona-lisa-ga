@@ -15,7 +15,8 @@ struct _color
   float  a;
 };
 
-bool    color_is_valid(const color* c);
+color*      color_copy(color* dst, const color* src);
+bool        color_is_valid(const color* c);
 
 struct _geometry
 {
@@ -25,7 +26,8 @@ struct _geometry
   float  h;
 };
 
-bool    geometry_is_valid(const geometry* g);
+geometry*    geometry_copy(geometry* dst, const geometry* src);
+bool         geometry_is_valid(const geometry* g);
 
 struct _rectangle
 {
@@ -33,14 +35,15 @@ struct _rectangle
   color     color;
 };
 
-bool    rectangle_is_valid(const rectangle* r);
+rectangle*  rectangle_copy(rectangle* dst, const rectangle* src);
+bool        rectangle_is_valid(const rectangle* r);
 
 
-float   max(float a, float b);
-float   min(float a, float b);
-int     clamp(int x, int min, int max);
-int     unirandom_i(int beg, int end);
-float   unirandom_f(float beg, float end);
-bool    unirandom_b();
+float       max(float a, float b);
+float       min(float a, float b);
+int         clamp(int x, int min, int max);
+int         unirandom_i(int beg, int end);
+float       unirandom_f(float beg, float end);
+bool        unirandom_b();
 
 #endif

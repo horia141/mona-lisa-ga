@@ -59,6 +59,17 @@ view_init()
   individual_free(indi);
 }
 
+void
+view_update(
+ int value)
+{
+  printf("hello\n\n");
+
+  if (value == 1) {
+    glutTimerFunc(1000,view_update,0);
+  }
+}
+
 int
 main(int argc, char** argv)
 {
@@ -68,6 +79,7 @@ main(int argc, char** argv)
   glutInitWindowPosition(0,0);
   glutCreateWindow("simple");
   glutDisplayFunc(view_display);
+  glutTimerFunc(1000,view_update,1);
 
   view_init();
   glutMainLoop();

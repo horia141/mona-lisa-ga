@@ -133,9 +133,40 @@ individual_to_image(
   return new_img;
 }
 
+individual*
+individual_crossover(
+  individual* target,
+  const individual* parent1,
+  const individual* parent2,
+  const crossmask* mask)
+{
+  assert(individual_is_valid(target));
+  assert(individual_is_valid(parent1));
+  assert(individual_is_valid(parent2));
+  assert(crossmask_is_valid(mask));
+  assert(target->gene_cnt == parent1->gene_cnt);
+  assert(target->gene_cnt == parent2->gene_cnt);
+  assert(target->gene_cnt == crossmask_get_flag_cnt(mask));
+
+  int  i;
+
+  for (i = 0; i < target->gene_cnt; i++) {
+    if (crossmask_get(mask,i) == true) {
+      rectangle_copy(&target->genes[i],&parent1->genes[i]);
+    } else {
+      rectangle_copy(&target->genes[i],&parent2->genes[i]);
+    }
+  }
+
+  return target;
+}
+
 
 struct _population
 {
+  int           lambda;
+  int           mu;
+  image*        target;
   int           indi_cnt;
   individual**  indis;
 };
@@ -143,15 +174,25 @@ struct _population
 population*
 population_random(
   int indi_cnt,
-  int gene_cnt)
+  int gene_cnt,
+  int lambda,
+  int mu,
+  image* target)
 {
   assert(indi_cnt > 0);
+  assert(gene_cnt > 0);
+  assert(lambda > 0);
+  assert(mu > 0);
+  assert(image_is_valid(target));
+  assert(lambda % mu == 0);
 
   population*  new_pop;
   int          i;
 
   new_pop = malloc(sizeof(population));
 
+  new_pop->lambda = lambda;
+  new_pop->mu = mu;
   new_pop->indi_cnt = indi_cnt;
   new_pop->indis = malloc(sizeof(individual*) * indi_cnt);
 
@@ -189,6 +230,18 @@ population_is_valid(
     return false;
   }
 
+  if (pop->lambda < 1) {
+    return false;
+  }
+
+  if (pop->mu < 1) {
+    return false;
+  }
+
+  if (pop->lambda % pop->mu != 0) {
+    return false;
+  }
+
   if (pop->indi_cnt < 1) {
     return false;
   }
@@ -211,6 +264,9 @@ population*
 population_evolve(
   population* pop)
 {
+  assert(population_is_valid(pop));
+
+  return pop;
 }
 
 
@@ -222,14 +278,14 @@ struct _crossmask
 
 static crossmask*
 _crossmask_null(
-  int flags_cnt)
+  int flag_cnt)
 {
-  assert(flags_cnt > 0);
+  assert(flag_cnt > 0);
 
   crossmask*  mask;
 
-  mask = malloc(sizeof(crossmask) + sizeof(bool) * flags_cnt);
-  mask->flag_cnt = flags_cnt;
+  mask = malloc(sizeof(crossmask) + sizeof(bool) * flag_cnt);
+  mask->flag_cnt = flag_cnt;
 
   return mask;
 }
@@ -237,22 +293,22 @@ _crossmask_null(
 
 crossmask*
 crossmask_onecut(
-  int flags_cnt)
+  int flag_cnt)
 {
-  assert(flags_cnt > 0);
+  assert(flag_cnt > 0);
 
   crossmask*  new_mask;
   int         cut_point;
   int         i;
 
-  new_mask = _crossmask_null(flags_cnt);
-  cut_point = unirandom_i(1,flags_cnt);
+  new_mask = _crossmask_null(flag_cnt);
+  cut_point = unirandom_i(1,flag_cnt);
 
   for (i = 0; i < cut_point; i++) {
     new_mask->flags[i] = true;
   }
 
-  for (i = cut_point; i < flags_cnt; i++) {
+  for (i = cut_point; i < flag_cnt; i++) {
     new_mask->flags[i] = false;
   }
 
@@ -261,16 +317,16 @@ crossmask_onecut(
 
 crossmask*
 crossmask_uniform(
-  int flags_cnt)
+  int flag_cnt)
 {
-  assert(flags_cnt > 0);
+  assert(flag_cnt > 0);
 
   crossmask*  new_mask;
   int         i;
 
-  new_mask = _crossmask_null(flags_cnt);
+  new_mask = _crossmask_null(flag_cnt);
 
-  for (i = 0; i < flags_cnt; i++) {
+  for (i = 0; i < flag_cnt; i++) {
     new_mask->flags[i] = unirandom_b();
   }
 
@@ -283,7 +339,7 @@ crossmask_free(
 {
   assert(crossmask_is_valid(mask));
 
-  mask->flags_cnt = -1;
+  mask->flag_cnt = -1;
 
   free(mask);
 }
@@ -297,7 +353,7 @@ crossmask_is_valid(
     return false;
   }
 
-  if (mask->flags_cnt < 1) {
+  if (mask->flag_cnt < 1) {
     return false;
   }
 
@@ -306,12 +362,12 @@ crossmask_is_valid(
 
 
 int
-crossmask_get_flags_cnt(
+crossmask_get_flag_cnt(
   const crossmask* mask)
 {
   assert(crossmask_is_valid(mask));
 
-  return mask->flags_cnt;
+  return mask->flag_cnt;
 }
 
 bool
@@ -320,7 +376,7 @@ crossmask_get(
   int i)
 {
   assert(crossmask_is_valid(mask));
-  assert(i >= 0 && i < mask->flags_cnt);
+  assert(i >= 0 && i < mask->flag_cnt);
 
   return mask->flags[i];
 }

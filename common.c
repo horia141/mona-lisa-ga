@@ -3,6 +3,22 @@
 
 #include "common.h"
 
+color*
+color_copy(
+  color* dst,
+  const color* src)
+{
+  assert(color_is_valid(dst));
+  assert(color_is_valid(src));
+
+  dst->r = src->r;
+  dst->g = src->g;
+  dst->b = src->b;
+  dst->a = src->a;
+
+  return dst;
+}
+
 bool
 color_is_valid(
   const color* c)
@@ -30,6 +46,22 @@ color_is_valid(
   return true;
 }
 
+
+geometry*
+geometry_copy(
+  geometry* dst,
+  const geometry* src)
+{
+  assert(geometry_is_valid(dst));
+  assert(geometry_is_valid(src));
+
+  dst->x = src->x;
+  dst->y = src->y;
+  dst->w = src->w;
+  dst->h = src->h;
+
+  return dst;
+}
 
 bool
 geometry_is_valid(
@@ -66,6 +98,20 @@ geometry_is_valid(
   return true;
 }
 
+
+rectangle*
+rectangle_copy(
+  rectangle* dst,
+  const rectangle* src)
+{
+  assert(rectangle_is_valid(dst));
+  assert(rectangle_is_valid(src));
+
+  geometry_copy(&dst->geometry,&src->geometry);
+  color_copy(&dst->color,&src->color);
+
+  return dst;
+}
 
 bool
 rectangle_is_valid(
