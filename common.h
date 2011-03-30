@@ -17,6 +17,7 @@ struct _color
 
 color*      color_copy(color* dst, const color* src);
 bool        color_is_valid(const color* c);
+float       color_distance(const color* a, const color* b);
 
 struct _geometry
 {

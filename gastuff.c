@@ -4,6 +4,9 @@
 
 #include "gastuff.h"
 
+typedef struct _indi_desc  indi_desc;
+
+
 struct _individual
 {
   int         gene_cnt;
@@ -161,15 +164,79 @@ individual_crossover(
   return target;
 }
 
+struct _indi_desc
+{
+  individual*  indi;
+  image*       image;
+  float        score;
+};
 
 struct _population
 {
   int           lambda;
   int           mu;
-  image*        target;
-  int           indi_cnt;
-  individual**  indis;
+  const image*  target;
+  int           indi_desc_cnt;
+  indi_desc*    indi_descs;
+
 };
+
+
+static float
+_population_calc_score(
+  const image* indi_image,
+  const image* target)
+{
+  assert(image_is_valid(indi_image));
+  assert(target);
+  assert(image_get_rows(indi_image) == image_get_rows(target));
+  assert(image_get_cols(indi_image) == image_get_cols(target));
+
+  float  score;
+  color  tmp_a;
+  color  tmp_b;
+  int    rows;
+  int    cols;
+  int    i;
+  int    j;
+
+  score = 0;
+  rows = image_get_rows(indi_image);
+  cols = image_get_cols(indi_image);
+
+  for (i = 0; i < rows; i++) {
+    for (j = 0; j < cols; j++) {
+      tmp_a = image_get(indi_image,i,j);
+      tmp_b = image_get(target,i,j);
+      score += color_distance(&tmp_a,&tmp_b);
+    }
+  }
+
+  return score;
+}
+
+static int
+_population_compare_indi_desc(
+  const void* a,
+  const void* b)
+{
+  assert(a != NULL);
+  assert(b != NULL);
+
+  indi_desc*  t_a = (indi_desc*)a;
+  indi_desc*  t_b = (indi_desc*)b;
+
+  if (t_a->score > t_b->score) {
+    return 1;
+  } else if (t_a->score < t_b->score) {
+    return -1;
+  } else {
+    return 0;
+  }
+
+  return 0;
+}
+
 
 population*
 population_random(
@@ -177,7 +244,7 @@ population_random(
   int gene_cnt,
   int lambda,
   int mu,
-  image* target)
+  const image* target)
 {
   assert(indi_cnt > 0);
   assert(gene_cnt > 0);
@@ -193,12 +260,17 @@ population_random(
 
   new_pop->lambda = lambda;
   new_pop->mu = mu;
-  new_pop->indi_cnt = indi_cnt;
-  new_pop->indis = malloc(sizeof(individual*) * indi_cnt);
+  new_pop->target = target;
+  new_pop->indi_desc_cnt = indi_cnt;
+  new_pop->indi_descs = malloc(sizeof(indi_desc) * indi_cnt);
 
   for (i = 0; i < indi_cnt; i++) {
-    new_pop->indis[i] = individual_random(gene_cnt);
+    new_pop->indi_descs[i].indi = individual_random(gene_cnt);
+    new_pop->indi_descs[i].image = individual_to_image(new_pop->indi_descs[i].indi,image_get_rows(target),image_get_cols(target));
+    new_pop->indi_descs[i].score = _population_calc_score(new_pop->indi_descs[i].image,target);
   }
+
+  qsort(new_pop->indi_descs,new_pop->indi_desc_cnt,sizeof(indi_desc),_population_compare_indi_desc);
 
   return new_pop;
 }
@@ -211,12 +283,20 @@ population_free(
 
   int  i;
 
-  for (i = 0; i < pop->indi_cnt; i++) {
-    individual_free(pop->indis[i]);
+  for (i = 0; i < pop->indi_desc_cnt; i++) {
+    individual_free(pop->indi_descs[i].indi);
+    image_free(pop->indi_descs[i].image);
   }
 
-  pop->indi_cnt = -1;
-  pop->indis = NULL;
+  free(pop->indi_descs);
+
+  pop->lambda = -1;
+  pop->mu = -1;
+  pop->target = NULL;
+  pop->indi_desc_cnt = -1;
+  pop->indi_descs = NULL;
+
+  free(pop);
 }
 
 
@@ -242,16 +322,24 @@ population_is_valid(
     return false;
   }
 
-  if (pop->indi_cnt < 1) {
+  if (pop->indi_desc_cnt < 1) {
     return false;
   }
 
-  if (pop->indis == NULL) {
+  if (pop->indi_descs == NULL) {
     return false;
   }
 
-  for (i = 0; i< pop->indi_cnt; i++) {
-    if (!individual_is_valid(pop->indis[i])) {
+  for (i = 0; i< pop->indi_desc_cnt; i++) {
+    if (!individual_is_valid(pop->indi_descs[i].indi)) {
+      return false;
+    }
+
+    if (!image_is_valid(pop->indi_descs[i].image)) {
+      return false;
+    }
+
+    if (pop->indi_descs[i].score < 0) {
       return false;
     }
   }
@@ -267,6 +355,17 @@ population_evolve(
   assert(population_is_valid(pop));
 
   return pop;
+}
+
+const image*
+population_get_cached_image(
+  const population* pop,
+  int indi_id)
+{
+  assert(population_is_valid(pop));
+  assert(indi_id >= 0 && indi_id < pop->indi_desc_cnt);
+
+  return pop->indi_descs[indi_id].image;
 }
 
 

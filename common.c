@@ -46,6 +46,20 @@ color_is_valid(
   return true;
 }
 
+float
+color_distance(
+  const color* a,
+  const color* b)
+{
+  assert(color_is_valid(a));
+  assert(color_is_valid(b));
+
+  return (b->r - a->r) * (b->r - a->r) +
+         (b->g - a->g) * (b->g - a->g) +
+         (b->b - a->b) * (b->b - a->b) +
+         (b->a - a->a) * (b->a - a->a);
+}
+
 
 geometry*
 geometry_copy(
