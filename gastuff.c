@@ -40,6 +40,33 @@ individual_random(
   return new_indi;
 }
 
+individual*
+individual_mutate(
+  const individual* parent)
+{
+  assert(individual_is_valid(parent));
+
+  individual*  new_indi;
+  int          i;
+
+  new_indi = malloc(sizeof(individual) + sizeof(rectangle) * parent->gene_cnt);
+
+  new_indi->gene_cnt = parent->gene_cnt;
+
+  for (i = 0; i < parent->gene_cnt; i++) {
+    new_indi->genes[i].geometry.x = clamp_f(parent->genes[i].geometry.x + unirandom_f(-0.05,0.05),0,0.94);
+    new_indi->genes[i].geometry.y = clamp_f(parent->genes[i].geometry.y + unirandom_f(-0.05,0.05),0,0.94);
+    new_indi->genes[i].geometry.w = clamp_f(parent->genes[i].geometry.w + unirandom_f(-0.05,0.05),0.05,1 - new_indi->genes[i].geometry.x);
+    new_indi->genes[i].geometry.h = clamp_f(parent->genes[i].geometry.h + unirandom_f(-0.05,0.05),0.05,1 - new_indi->genes[i].geometry.y);
+    new_indi->genes[i].color.r = clamp_f(parent->genes[i].color.r + unirandom_f(-0.05,0.05),0,1);
+    new_indi->genes[i].color.g = clamp_f(parent->genes[i].color.g + unirandom_f(-0.05,0.05),0,1);
+    new_indi->genes[i].color.b = clamp_f(parent->genes[i].color.b + unirandom_f(-0.05,0.05),0,1);
+    new_indi->genes[i].color.a = 1;
+  }
+
+  return new_indi;
+}
+
 void
 individual_free(
   individual* indi)
@@ -107,10 +134,10 @@ individual_to_image(
 
       for (k = 0; k < indi->gene_cnt; k++) {
 	/* Should precompute these. */
-	gene_x_scaled = clamp((int)floorf(indi->genes[k].geometry.x * cols),0,cols);
-	gene_y_scaled = clamp((int)floorf(indi->genes[k].geometry.y * rows),0,rows);
-	gene_w_scaled = clamp((int)floorf(indi->genes[k].geometry.w * cols),0,cols - gene_x_scaled);
-	gene_h_scaled = clamp((int)floorf(indi->genes[k].geometry.h * rows),0,rows - gene_y_scaled);
+	gene_x_scaled = clamp_i((int)floorf(indi->genes[k].geometry.x * cols),0,cols);
+	gene_y_scaled = clamp_i((int)floorf(indi->genes[k].geometry.y * rows),0,rows);
+	gene_w_scaled = clamp_i((int)floorf(indi->genes[k].geometry.w * cols),0,cols - gene_x_scaled);
+	gene_h_scaled = clamp_i((int)floorf(indi->genes[k].geometry.h * rows),0,rows - gene_y_scaled);
 
 	if (i >= gene_y_scaled && i <= gene_y_scaled + gene_h_scaled &&
 	    j >= gene_x_scaled && j <= gene_x_scaled + gene_w_scaled) {
@@ -173,7 +200,7 @@ struct _indi_desc
 
 struct _population
 {
-  int           lambda;
+  int           gene_cnt;
   int           mu;
   const image*  target;
   int           indi_desc_cnt;
@@ -242,23 +269,21 @@ population*
 population_random(
   int indi_cnt,
   int gene_cnt,
-  int lambda,
   int mu,
   const image* target)
 {
   assert(indi_cnt > 0);
   assert(gene_cnt > 0);
-  assert(lambda > 0);
   assert(mu > 0);
   assert(image_is_valid(target));
-  assert(lambda % mu == 0);
+  assert(indi_cnt % mu == 0);
 
   population*  new_pop;
   int          i;
 
   new_pop = malloc(sizeof(population));
 
-  new_pop->lambda = lambda;
+  new_pop->gene_cnt = gene_cnt;
   new_pop->mu = mu;
   new_pop->target = target;
   new_pop->indi_desc_cnt = indi_cnt;
@@ -290,7 +315,7 @@ population_free(
 
   free(pop->indi_descs);
 
-  pop->lambda = -1;
+  pop->gene_cnt = -1;
   pop->mu = -1;
   pop->target = NULL;
   pop->indi_desc_cnt = -1;
@@ -310,7 +335,7 @@ population_is_valid(
     return false;
   }
 
-  if (pop->lambda < 1) {
+  if (pop->gene_cnt < 1) {
     return false;
   }
 
@@ -318,7 +343,7 @@ population_is_valid(
     return false;
   }
 
-  if (pop->lambda % pop->mu != 0) {
+  if (pop->indi_desc_cnt % pop->mu != 0) {
     return false;
   }
 
@@ -353,6 +378,34 @@ population_evolve(
   population* pop)
 {
   assert(population_is_valid(pop));
+
+  indi_desc*  new_indi_descs;
+  int         mul_factor;
+  int         i;
+  int         j;
+
+  new_indi_descs = malloc(sizeof(indi_desc) * pop->indi_desc_cnt);
+
+  mul_factor = pop->indi_desc_cnt / pop->mu;
+
+  for (i = 0; i < pop->mu; i++) {
+    for (j = 0; j < mul_factor; j++) {
+      new_indi_descs[i * mul_factor + j].indi = individual_mutate(pop->indi_descs[i].indi);
+      new_indi_descs[i * mul_factor + j].image = individual_to_image(new_indi_descs[i * mul_factor + j].indi,image_get_rows(pop->target),image_get_cols(pop->target));
+      new_indi_descs[i * mul_factor + j].score = _population_calc_score(new_indi_descs[i * mul_factor + j].image,pop->target);
+    }
+  }
+
+  qsort(new_indi_descs,pop->indi_desc_cnt,sizeof(indi_desc),_population_compare_indi_desc);
+
+  for (i = 0; i < pop->indi_desc_cnt; i++) {
+    individual_free(pop->indi_descs[i].indi);
+    image_free(pop->indi_descs[i].image);
+  }
+
+  free(pop->indi_descs);
+
+  pop->indi_descs = new_indi_descs;
 
   return pop;
 }

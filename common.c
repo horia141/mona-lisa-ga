@@ -172,10 +172,25 @@ min(
 }
 
 int
-clamp(
+clamp_i(
   int x,
   int min,
   int max)
+{
+  if (x < min) {
+    return min;
+  } else if (x > max) {
+    return max;
+  } else {
+    return x;
+  }
+}
+
+float
+clamp_f(
+  float x,
+  float min,
+  float max)
 {
   if (x < min) {
     return min;

@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 #include <GL/gl.h>
 #include <GL/glu.h>
 #include <GL/glut.h>
@@ -13,7 +14,6 @@ struct {
   int           max_iteration;
   int           indi_count;
   int           gene_count;
-  int           lambda;
   int           mu;
   int           evolve_time;
   int           grid_rows;
@@ -43,8 +43,6 @@ app_update_cb(
   int                j;
 
   if (state.curr_iteration < config.max_iteration) {
-    printf("Iteration #%d\n",state.curr_iteration + 1);
-
     population_evolve(state.pop);
 
     /* Upload Best new texture. */
@@ -74,6 +72,8 @@ app_update_cb(
 	free(work_texture);
       }
     }
+
+    printf("Iteration #%d\n",state.curr_iteration + 1);
 
     state.curr_iteration += 1;
 
@@ -288,17 +288,19 @@ main(
   int argc,
   char** argv)
 {
+  srandom(time(NULL));
+  printf("%f\n",unirandom_f(-0.1,0.1));
+
   config.target = image_from_ppm_t("MonaLisa.ppm");
   config.max_iteration = 20;
   config.indi_count = 32;
   config.gene_count = 32;
-  config.lambda = 16;
   config.mu = 8;
   config.evolve_time = 1000;
   config.grid_rows = 2;
   config.grid_cols = 8;
 
-  state.pop = population_random(config.indi_count,config.gene_count,config.lambda,config.mu,config.target);
+  state.pop = population_random(config.indi_count,config.gene_count,config.mu,config.target);
   state.curr_iteration = 0;
 
   app_init_display(&argc,argv);
