@@ -20,6 +20,7 @@ static struct {
   int           grid_rows;
   int           grid_cols;
   bool          exit_on_stop;
+  int           draw_skip;
   struct {
     int         window_id;
     geometry    target_place;
@@ -54,38 +55,39 @@ app_update_cb(
 
     population_evolve(state.pop);
 
-    /* Upload Best new texture. */
+    if (state.curr_iteration % (config.draw_skip + 1) == 0) {
+      /* Upload Best new texture. */
 
-    work_image = population_get_best_image(state.pop);
-    image_make_texture_a(work_image,work_texture);
+      work_image = population_get_best_image(state.pop);
+      image_make_texture_a(work_image,work_texture);
 
-    glBindTexture(GL_TEXTURE_2D,config.display.best_tid);
-    glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,
-		 image_get_cols(work_image),image_get_rows(work_image),
-		 0,GL_RGBA,GL_FLOAT,work_texture);
+      glBindTexture(GL_TEXTURE_2D,config.display.best_tid);
+      glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,
+		   image_get_cols(work_image),image_get_rows(work_image),
+		   0,GL_RGBA,GL_FLOAT,work_texture);
 
-    /* Upload Grid new textures. */
+      /* Upload Grid new textures. */
 
-    for (i = 0; i < config.grid_rows; i++) {
-      for (j = 0; j < config.grid_cols; j++) {
-	work_image = population_get_curr_image(state.pop,i * config.grid_cols + j);
-	image_make_texture_a(work_image,work_texture);
+      for (i = 0; i < config.grid_rows; i++) {
+	for (j = 0; j < config.grid_cols; j++) {
+	  work_image = population_get_curr_image(state.pop,i * config.grid_cols + j);
+	  image_make_texture_a(work_image,work_texture);
 
-	glBindTexture(GL_TEXTURE_2D,config.display.grid_tids[i][j]);
-	glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,
-		     image_get_cols(work_image),image_get_rows(work_image),
-		     0,GL_RGBA,GL_FLOAT,work_texture);
+	  glBindTexture(GL_TEXTURE_2D,config.display.grid_tids[i][j]);
+	  glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,
+		       image_get_cols(work_image),image_get_rows(work_image),
+		       0,GL_RGBA,GL_FLOAT,work_texture);
+	}
       }
+
+      memset(window_title,0,WINDOW_TITLE_SIZE + 1);
+      snprintf(window_title,WINDOW_TITLE_SIZE,"Running: Iteration #%d/%d",state.curr_iteration + 1,config.max_iteration);
+      glutSetWindowTitle(window_title);
+      glutPostRedisplay();
     }
 
-    memset(window_title,0,WINDOW_TITLE_SIZE + 1);
-    snprintf(window_title,WINDOW_TITLE_SIZE,"Running: Iteration #%d/%d",state.curr_iteration + 1,config.max_iteration);
-    glutSetWindowTitle(window_title);
-
-    state.curr_iteration += 1;
-
     glutTimerFunc(config.evolve_time,app_update_cb,0);
-    glutPostRedisplay();
+    state.curr_iteration += 1;
   } else {
     free(work_texture);
 
@@ -314,11 +316,19 @@ main(
   config.indi_count = 32;
   config.gene_count = 32;
   config.mu = 4;
+<<<<<<< HEAD
   config.workers_cnt = 2;
   config.evolve_time = 10;
   config.grid_rows = 2;
   config.grid_cols = 8;
   config.exit_on_stop = true;
+=======
+  config.evolve_time = 0;
+  config.grid_rows = 2;
+  config.grid_cols = 8;
+  config.exit_on_stop = true;
+  config.draw_skip = 49;
+>>>>>>> master
 
   state.pop = population_random(config.indi_count,config.gene_count,config.mu,
 				config.target,config.workers_cnt);

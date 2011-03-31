@@ -4,3 +4,4 @@ Test1   64x74        300              32           32           4    37s        
 Test1   64x74        300              32           32           4    36s              18s             In place Images @commit "More performance improvements.".
 Test1   64x74        300              32           32           4    36s              18s             In place Texture @commit "Even more performance improvements.".
 Test1   64x74        300              32           32           4    24s              14s             CPU parallelization @commit "Made the evolver cpu-parallel.".
+Test1   64x74        300              32           32           4    30s              14s             Skip some frames @commit "Added frame skipping.".
