@@ -101,13 +101,13 @@ geometry_is_valid(
     return false;
   }
 
-  if (g->x + g->w < 0 || g->x + g->w > 1) {
-    return false;
-  }
+  /* if (g->x + g->w < 0 || g->x + g->w > 1) { */
+  /*   return false; */
+  /* } */
 
-  if (g->y + g->h < 0 || g->y + g->h > 1) {
-    return false;
-  }
+  /* if (g->y + g->h < 0 || g->y + g->h > 1) { */
+  /*   return false; */
+  /* } */
 
   return true;
 }

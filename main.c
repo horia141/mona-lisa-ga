@@ -19,6 +19,7 @@ struct {
   int           grid_rows;
   int           grid_cols;
   struct {
+    int         window_id;
     geometry    target_place;
     int         target_tid;
     geometry    best_place;
@@ -79,7 +80,9 @@ app_update_cb(
 
     glutTimerFunc(config.evolve_time,app_update_cb,0);
     glutPostRedisplay();
-  }    
+  } else {
+    /* glutDestroyWindow(config.display.window_id);*/
+  }
 }
 
 void
@@ -188,7 +191,7 @@ app_init_display(
   glutInitDisplayMode(GLUT_RGBA|GLUT_DOUBLE);
   glutInitWindowSize(500,500);
   glutInitWindowPosition(100,100);
-  glutCreateWindow("GA Vizualization");
+  config.display.window_id = glutCreateWindow("GA Vizualization");
   glutDisplayFunc(app_display_cb);
 
   glClearColor(0,0,0,0);
@@ -289,14 +292,13 @@ main(
   char** argv)
 {
   srandom(time(NULL));
-  printf("%f\n",unirandom_f(-0.1,0.1));
 
-  config.target = image_from_ppm_t("MonaLisa.ppm");
-  config.max_iteration = 20;
+  config.target = image_from_ppm_t("Mondrian.ppm");
+  config.max_iteration = 10000;
   config.indi_count = 32;
   config.gene_count = 32;
-  config.mu = 8;
-  config.evolve_time = 1000;
+  config.mu = 4;
+  config.evolve_time = 10;
   config.grid_rows = 2;
   config.grid_cols = 8;
 

@@ -47,22 +47,46 @@ individual_mutate(
   assert(individual_is_valid(parent));
 
   individual*  new_indi;
+  int          modif_gene;
   int          i;
 
   new_indi = malloc(sizeof(individual) + sizeof(rectangle) * parent->gene_cnt);
 
   new_indi->gene_cnt = parent->gene_cnt;
 
+  modif_gene = unirandom_i(0,parent->gene_cnt);
+
   for (i = 0; i < parent->gene_cnt; i++) {
-    new_indi->genes[i].geometry.x = clamp_f(parent->genes[i].geometry.x + unirandom_f(-0.05,0.05),0,0.94);
-    new_indi->genes[i].geometry.y = clamp_f(parent->genes[i].geometry.y + unirandom_f(-0.05,0.05),0,0.94);
-    new_indi->genes[i].geometry.w = clamp_f(parent->genes[i].geometry.w + unirandom_f(-0.05,0.05),0.05,1 - new_indi->genes[i].geometry.x);
-    new_indi->genes[i].geometry.h = clamp_f(parent->genes[i].geometry.h + unirandom_f(-0.05,0.05),0.05,1 - new_indi->genes[i].geometry.y);
-    new_indi->genes[i].color.r = clamp_f(parent->genes[i].color.r + unirandom_f(-0.05,0.05),0,1);
-    new_indi->genes[i].color.g = clamp_f(parent->genes[i].color.g + unirandom_f(-0.05,0.05),0,1);
-    new_indi->genes[i].color.b = clamp_f(parent->genes[i].color.b + unirandom_f(-0.05,0.05),0,1);
-    new_indi->genes[i].color.a = 1;
+    if (i != modif_gene) {
+      new_indi->genes[i].geometry.x = parent->genes[i].geometry.x;
+      new_indi->genes[i].geometry.y = parent->genes[i].geometry.y;
+      new_indi->genes[i].geometry.w = parent->genes[i].geometry.w;
+      new_indi->genes[i].geometry.h = parent->genes[i].geometry.h;
+      new_indi->genes[i].color.r = parent->genes[i].color.r;
+      new_indi->genes[i].color.g = parent->genes[i].color.g;
+      new_indi->genes[i].color.b = parent->genes[i].color.b;
+      new_indi->genes[i].color.a = 1;
+    } else {
+      new_indi->genes[modif_gene].geometry.x = clamp_f(parent->genes[modif_gene].geometry.x + unirandom_f(-0.05,0.05),0,0.90);
+      new_indi->genes[modif_gene].geometry.y = clamp_f(parent->genes[modif_gene].geometry.y + unirandom_f(-0.05,0.05),0,0.90);
+      new_indi->genes[modif_gene].geometry.w = clamp_f(parent->genes[modif_gene].geometry.w + unirandom_f(-0.05,0.05),0.05,1 - new_indi->genes[modif_gene].geometry.x);
+      new_indi->genes[modif_gene].geometry.h = clamp_f(parent->genes[modif_gene].geometry.h + unirandom_f(-0.05,0.05),0.05,1 - new_indi->genes[modif_gene].geometry.y);
+      new_indi->genes[modif_gene].color.r = clamp_f(parent->genes[modif_gene].color.r + unirandom_f(-0.05,0.05),0,1);
+      new_indi->genes[modif_gene].color.g = clamp_f(parent->genes[modif_gene].color.g + unirandom_f(-0.05,0.05),0,1);
+      new_indi->genes[modif_gene].color.b = clamp_f(parent->genes[modif_gene].color.b + unirandom_f(-0.05,0.05),0,1);
+      new_indi->genes[modif_gene].color.a = 1;
+      /* new_indi->genes[i].geometry.x = unirandom_f(0,0.94); */
+      /* new_indi->genes[i].geometry.y = unirandom_f(0,0.94); */
+      /* new_indi->genes[i].geometry.w = unirandom_f(0.05,1 - new_indi->genes[i].geometry.x); */
+      /* new_indi->genes[i].geometry.h = unirandom_f(0.05,1 - new_indi->genes[i].geometry.y); */
+      /* new_indi->genes[i].color.r = unirandom_f(0,1); */
+      /* new_indi->genes[i].color.g = unirandom_f(0,1); */
+      /* new_indi->genes[i].color.b = unirandom_f(0,1); */
+      /* new_indi->genes[i].color.a = 1; */
+    }
   }
+
+
 
   return new_indi;
 }
@@ -114,15 +138,27 @@ individual_to_image(
   image*  new_img;
   color   color_sum;
   int     intersect_cnt;
-  int     gene_x_scaled;
-  int     gene_y_scaled;
-  int     gene_w_scaled;
-  int     gene_h_scaled;
+  int*    gene_x_scaled;
+  int*    gene_y_scaled;
+  int*    gene_w_scaled;
+  int*    gene_h_scaled;
   int     i;
   int     j;
   int     k;
 
   new_img = image_blank(rows,cols,(color){0,0,0,1});
+
+  gene_x_scaled = malloc(sizeof(int) * indi->gene_cnt);
+  gene_y_scaled = malloc(sizeof(int) * indi->gene_cnt);
+  gene_w_scaled = malloc(sizeof(int) * indi->gene_cnt);
+  gene_h_scaled = malloc(sizeof(int) * indi->gene_cnt);
+
+  for (k = 0; k < indi->gene_cnt; k++) {
+    gene_x_scaled[k] = clamp_i((int)floorf(indi->genes[k].geometry.x * cols),0,cols);
+    gene_y_scaled[k] = clamp_i((int)floorf(indi->genes[k].geometry.y * rows),0,rows);
+    gene_w_scaled[k] = clamp_i((int)floorf(indi->genes[k].geometry.w * cols),0,cols - gene_x_scaled[k]);
+    gene_h_scaled[k] = clamp_i((int)floorf(indi->genes[k].geometry.h * rows),0,rows - gene_y_scaled[k]);
+  }
   
   for (i = 0; i < rows; i++) {
     for (j = 0; j < cols; j++) {
@@ -133,14 +169,8 @@ individual_to_image(
       intersect_cnt = 0;
 
       for (k = 0; k < indi->gene_cnt; k++) {
-	/* Should precompute these. */
-	gene_x_scaled = clamp_i((int)floorf(indi->genes[k].geometry.x * cols),0,cols);
-	gene_y_scaled = clamp_i((int)floorf(indi->genes[k].geometry.y * rows),0,rows);
-	gene_w_scaled = clamp_i((int)floorf(indi->genes[k].geometry.w * cols),0,cols - gene_x_scaled);
-	gene_h_scaled = clamp_i((int)floorf(indi->genes[k].geometry.h * rows),0,rows - gene_y_scaled);
-
-	if (i >= gene_y_scaled && i <= gene_y_scaled + gene_h_scaled &&
-	    j >= gene_x_scaled && j <= gene_x_scaled + gene_w_scaled) {
+	if (i >= gene_y_scaled[k] && i <= gene_y_scaled[k] + gene_h_scaled[k] &&
+	    j >= gene_x_scaled[k] && j <= gene_x_scaled[k] + gene_w_scaled[k]) {
 	  color_sum.r += indi->genes[k].color.r;
 	  color_sum.g += indi->genes[k].color.g;
 	  color_sum.b += indi->genes[k].color.b;
@@ -159,6 +189,11 @@ individual_to_image(
       }
     }
   }
+
+  free(gene_x_scaled);
+  free(gene_y_scaled);
+  free(gene_w_scaled);
+  free(gene_h_scaled);
 
   return new_img;
 }
