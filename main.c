@@ -18,6 +18,7 @@ struct {
   int           evolve_time;
   int           grid_rows;
   int           grid_cols;
+  bool          exit_on_stop;
   struct {
     int         window_id;
     geometry    target_place;
@@ -54,7 +55,7 @@ app_update_cb(
 
     /* Upload Best new texture. */
 
-    work_image = population_get_cached_image(state.pop,1);
+    work_image = population_get_best_image(state.pop);
     image_make_texture_a(work_image,work_texture);
 
     glBindTexture(GL_TEXTURE_2D,config.display.best_tid);
@@ -66,7 +67,7 @@ app_update_cb(
 
     for (i = 0; i < config.grid_rows; i++) {
       for (j = 0; j < config.grid_cols; j++) {
-	work_image = population_get_cached_image(state.pop,1 + i * config.grid_cols + j);
+	work_image = population_get_curr_image(state.pop,i * config.grid_cols + j);
 	image_make_texture_a(work_image,work_texture);
 
 	glBindTexture(GL_TEXTURE_2D,config.display.grid_tids[i][j]);
@@ -90,7 +91,10 @@ app_update_cb(
     memset(window_title,0,WINDOW_TITLE_SIZE + 1);
     snprintf(window_title,WINDOW_TITLE_SIZE,"Stopped",state.curr_iteration + 1);
     glutSetWindowTitle(window_title);
-    glutDestroyWindow(config.display.window_id);
+
+    if (config.exit_on_stop) {
+      glutDestroyWindow(config.display.window_id);
+    }
   }
 }
 
@@ -312,6 +316,7 @@ main(
   config.evolve_time = 10;
   config.grid_rows = 2;
   config.grid_cols = 8;
+  config.exit_on_stop = false;
 
   state.pop = population_random(config.indi_count,config.gene_count,config.mu,config.target);
   state.curr_iteration = 0;

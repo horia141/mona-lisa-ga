@@ -77,8 +77,31 @@ image_is_valid(
 }
 
 
+image*
+image_copy(
+  image* dst,
+  const image* src)
+{
+  assert(image_is_valid(dst));
+  assert(image_is_valid(src));
+  assert(dst->rows == src->rows);
+  assert(dst->cols == src->cols);
+
+  int  i;
+  int  j;
+
+  for (i = 0; i < dst->rows; i++) {
+    for (j = 0; j < dst->cols; j++) {
+      color_copy(&dst->data[i * dst->cols + j],&src->data[i * dst->cols + j]);
+    }
+  }
+
+  return dst;
+}
+
 float*
-image_make_texture(const image* img)
+image_make_texture(
+  const image* img)
 {
   assert(image_is_valid(img));
 

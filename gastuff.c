@@ -246,6 +246,7 @@ struct _population
   int           gene_cnt;
   int           mu;
   const image*  target;
+  indi_desc     best;
   int           indi_desc_cnt;
   indi_desc*    indi_descs;
 
@@ -322,23 +323,34 @@ population_random(
   assert(indi_cnt % mu == 0);
 
   population*  new_pop;
+  int          target_rows;
+  int          target_cols;
   int          i;
+  
+  target_rows = image_get_rows(target);
+  target_cols = image_get_cols(target);
 
   new_pop = malloc(sizeof(population));
 
   new_pop->gene_cnt = gene_cnt;
   new_pop->mu = mu;
   new_pop->target = target;
+  new_pop->best.indi = individual_random(gene_cnt);
+  new_pop->best.image = individual_to_image(new_pop->best.indi,target_rows,target_cols);
   new_pop->indi_desc_cnt = indi_cnt;
   new_pop->indi_descs = malloc(sizeof(indi_desc) * indi_cnt);
 
   for (i = 0; i < indi_cnt; i++) {
     new_pop->indi_descs[i].indi = individual_random(gene_cnt);
-    new_pop->indi_descs[i].image = individual_to_image(new_pop->indi_descs[i].indi,image_get_rows(target),image_get_cols(target));
+    new_pop->indi_descs[i].image = individual_to_image(new_pop->indi_descs[i].indi,target_rows,target_cols);
     new_pop->indi_descs[i].score = _population_calc_score(new_pop->indi_descs[i].image,target);
   }
 
   qsort(new_pop->indi_descs,new_pop->indi_desc_cnt,sizeof(indi_desc),_population_compare_indi_desc);
+
+  individual_copy(new_pop->best.indi,new_pop->indi_descs[0].indi);
+  image_copy(new_pop->best.image,new_pop->indi_descs[0].image);
+  new_pop->best.score = new_pop->indi_descs[0].score;
 
   return new_pop;
 }
@@ -448,11 +460,27 @@ population_evolve(
 
   qsort(pop->indi_descs,pop->indi_desc_cnt,sizeof(indi_desc),_population_compare_indi_desc);
 
+  if (pop->indi_descs[0].score < pop->best.score) {
+    individual_copy(pop->best.indi,pop->indi_descs[0].indi);
+    image_copy(pop->best.image,pop->indi_descs[0].image);
+    pop->best.score = pop->indi_descs[0].score;
+  }
+
   return pop;
 }
 
+
 const image*
-population_get_cached_image(
+population_get_best_image(
+  const population* pop)
+{
+  assert(population_is_valid(pop));
+
+  return pop->best.image;
+}
+
+const image*
+population_get_curr_image(
   const population* pop,
   int indi_id)
 {

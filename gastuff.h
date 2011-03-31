@@ -28,7 +28,9 @@ void         population_free(population* pop);
 bool         population_is_valid(const population* pop);
 
 population*  population_evolve(population* pop);
-const image* population_get_cached_image(const population* pop, int indi_id);
+
+const image* population_get_best_image(const population* pop);
+const image* population_get_curr_image(const population* pop, int indi_id);
 
 crossmask*   crossmask_onecut(int flags_cnt);
 crossmask*   crossmask_uniform(int flags_cnt);

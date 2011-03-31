@@ -12,6 +12,7 @@ void    image_free(image* img);
 
 bool    image_is_valid(const image* img);
 
+image*  image_copy(image* dst, const image* src);
 float*  image_make_texture(const image* img);
 float*  image_make_texture_a(const image* img, float* texture);
 
