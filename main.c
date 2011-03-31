@@ -38,6 +38,8 @@ void
 app_update_cb(
   int __unused)
 {
+  #define WINDOW_TITLE_SIZE 256
+  static char        window_title[WINDOW_TITLE_SIZE + 1];
   const image*       work_image;
   float*             work_texture;
   int                i;
@@ -74,14 +76,19 @@ app_update_cb(
       }
     }
 
-    printf("Iteration #%d\n",state.curr_iteration + 1);
+    memset(window_title,0,WINDOW_TITLE_SIZE + 1);
+    snprintf(window_title,WINDOW_TITLE_SIZE,"Running: Iteration #%d/%d",state.curr_iteration + 1,config.max_iteration);
+    glutSetWindowTitle(window_title);
 
     state.curr_iteration += 1;
 
     glutTimerFunc(config.evolve_time,app_update_cb,0);
     glutPostRedisplay();
   } else {
-    /* glutDestroyWindow(config.display.window_id);*/
+    memset(window_title,0,WINDOW_TITLE_SIZE + 1);
+    snprintf(window_title,WINDOW_TITLE_SIZE,"Stopped",state.curr_iteration + 1);
+    glutSetWindowTitle(window_title);
+    glutDestroyWindow(config.display.window_id);
   }
 }
 
@@ -184,6 +191,8 @@ app_init_display(
   float   grid_h = 0.35;
   float   cell_w = grid_w / config.grid_cols;
   float   cell_h = grid_h / config.grid_rows;
+  float   padding_x = 0.05 * cell_w;
+  float   padding_y = 0.05 * cell_h;
   int     i;
   int     j;
 
@@ -191,7 +200,7 @@ app_init_display(
   glutInitDisplayMode(GLUT_RGBA|GLUT_DOUBLE);
   glutInitWindowSize(500,500);
   glutInitWindowPosition(100,100);
-  config.display.window_id = glutCreateWindow("GA Vizualization");
+  config.display.window_id = glutCreateWindow("Not Started");
   glutDisplayFunc(app_display_cb);
 
   glClearColor(0,0,0,0);
@@ -263,10 +272,10 @@ app_init_display(
 
   for (i = 0; i < config.grid_rows; i++) {
     for (j = 0; j < config.grid_cols; j++) {
-      config.display.grid_places[i][j].x = grid_x + j*cell_w;
-      config.display.grid_places[i][j].y = grid_y + i*cell_h;
-      config.display.grid_places[i][j].w = cell_w;
-      config.display.grid_places[i][j].h = cell_h;
+      config.display.grid_places[i][j].x = grid_x + j*cell_w + padding_x;
+      config.display.grid_places[i][j].y = grid_y + i*cell_h + padding_y;
+      config.display.grid_places[i][j].w = cell_w - 2*padding_x;
+      config.display.grid_places[i][j].h = cell_h - 2*padding_y;
 
       glBindTexture(GL_TEXTURE_2D,config.display.grid_tids[i][j]);
       glPixelStorei(GL_UNPACK_ALIGNMENT,1);
@@ -294,7 +303,7 @@ main(
   srandom(time(NULL));
 
   config.target = image_from_ppm_t("Mondrian.ppm");
-  config.max_iteration = 10000;
+  config.max_iteration = 300;
   config.indi_count = 32;
   config.gene_count = 32;
   config.mu = 4;
