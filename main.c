@@ -40,39 +40,39 @@ app_update_cb(
 {
   #define WINDOW_TITLE_SIZE 256
   static char        window_title[WINDOW_TITLE_SIZE + 1];
+  static float*      work_texture = NULL;
   const image*       work_image;
-  float*             work_texture;
   int                i;
   int                j;
 
   if (state.curr_iteration < config.max_iteration) {
+    if (work_texture == NULL) {
+      work_texture = malloc(sizeof(float) * image_get_rows(config.target) * image_get_cols(config.target) * 4);
+    }
+
     population_evolve(state.pop);
 
     /* Upload Best new texture. */
 
     work_image = population_get_cached_image(state.pop,1);
-    work_texture = image_make_texture(work_image);
+    image_make_texture_a(work_image,work_texture);
 
     glBindTexture(GL_TEXTURE_2D,config.display.best_tid);
     glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,
 		 image_get_cols(work_image),image_get_rows(work_image),
 		 0,GL_RGBA,GL_FLOAT,work_texture);
 
-    free(work_texture);
-
     /* Upload Grid new textures. */
 
     for (i = 0; i < config.grid_rows; i++) {
       for (j = 0; j < config.grid_cols; j++) {
 	work_image = population_get_cached_image(state.pop,1 + i * config.grid_cols + j);
-	work_texture = image_make_texture(work_image);
+	image_make_texture_a(work_image,work_texture);
 
 	glBindTexture(GL_TEXTURE_2D,config.display.grid_tids[i][j]);
 	glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,
 		     image_get_cols(work_image),image_get_rows(work_image),
 		     0,GL_RGBA,GL_FLOAT,work_texture);
-
-	free(work_texture);
       }
     }
 
@@ -85,6 +85,8 @@ app_update_cb(
     glutTimerFunc(config.evolve_time,app_update_cb,0);
     glutPostRedisplay();
   } else {
+    free(work_texture);
+
     memset(window_title,0,WINDOW_TITLE_SIZE + 1);
     snprintf(window_title,WINDOW_TITLE_SIZE,"Stopped",state.curr_iteration + 1);
     glutSetWindowTitle(window_title);

@@ -89,19 +89,32 @@ image_make_texture(const image* img)
 
   new_texture = malloc(sizeof(float) * img->rows * img->cols * 4);
 
-  memset(new_texture,0,sizeof(float) * img->rows * img->cols * 4);
+  return image_make_texture_a(img,new_texture);
+}
+
+float*
+image_make_texture_a(
+  const image* img,
+  float* texture)
+{
+  assert(image_is_valid(img));
+  assert(texture != NULL);
+
+  color   tmp;
+  int     i;
+  int     j;
 
   for (i = 0; i < img->rows; i++) {
     for (j = 0; j < img->cols; j++) {
       tmp = image_get(img,i,j);
-      new_texture[(img->rows - i - 1) * img->cols * 4 + j * 4 + 0] = tmp.r;
-      new_texture[(img->rows - i - 1) * img->cols * 4 + j * 4 + 1] = tmp.g;
-      new_texture[(img->rows - i - 1) * img->cols * 4 + j * 4 + 2] = tmp.b;
-      new_texture[(img->rows - i - 1) * img->cols * 4 + j * 4 + 3] = tmp.a;
+      texture[(img->rows - i - 1) * img->cols * 4 + j * 4 + 0] = tmp.r;
+      texture[(img->rows - i - 1) * img->cols * 4 + j * 4 + 1] = tmp.g;
+      texture[(img->rows - i - 1) * img->cols * 4 + j * 4 + 2] = tmp.b;
+      texture[(img->rows - i - 1) * img->cols * 4 + j * 4 + 3] = tmp.a;
     }
   }
 
-  return new_texture;
+  return texture;
 }
 
 

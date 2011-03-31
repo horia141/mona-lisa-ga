@@ -13,6 +13,7 @@ void    image_free(image* img);
 bool    image_is_valid(const image* img);
 
 float*  image_make_texture(const image* img);
+float*  image_make_texture_a(const image* img, float* texture);
 
 int     image_get_rows(const image* img);
 int     image_get_cols(const image* img);
