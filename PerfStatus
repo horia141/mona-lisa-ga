@@ -1,3 +1,4 @@
 Suite   Image Size   Max Iterations   Indi Count   Gene Count   Mu   Normal Runtime   Ultra Runtime   Comment
 Test1   64x74        300              32           32           4    38s              21s             Original @commit "Small estetic changes.".
-Test1   64x74        300              32           32           4    37s              21s             Original @commit "Some performance improvements.".
+Test1   64x74        300              32           32           4    37s              21s             In place Evolve @commit "Some performance improvements.".
+Test1   64x74        300              32           32           4    36s              18s             In place Images @commit "More performance improvements.".

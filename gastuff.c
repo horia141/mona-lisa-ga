@@ -105,7 +105,23 @@ individual_to_image(
   assert(cols > 0);
 
   image*  new_img;
+
+  new_img = image_blank(rows,cols,(color){0,0,0,1});
+  
+  return individual_to_image_a(indi,new_img);
+}
+
+image*
+individual_to_image_a(
+  const individual* indi,
+  image* image)
+{
+  assert(individual_is_valid(indi));
+  assert(image_is_valid(image));
+
   color   color_sum;
+  int     rows;
+  int     cols;
   int     intersect_cnt;
   int*    gene_x_scaled;
   int*    gene_y_scaled;
@@ -115,7 +131,8 @@ individual_to_image(
   int     j;
   int     k;
 
-  new_img = image_blank(rows,cols,(color){0,0,0,1});
+  rows = image_get_rows(image);
+  cols = image_get_cols(image);
 
   gene_x_scaled = malloc(sizeof(int) * indi->gene_cnt);
   gene_y_scaled = malloc(sizeof(int) * indi->gene_cnt);
@@ -128,7 +145,7 @@ individual_to_image(
     gene_w_scaled[k] = clamp_i((int)floorf(indi->genes[k].geometry.w * cols),0,cols - gene_x_scaled[k]);
     gene_h_scaled[k] = clamp_i((int)floorf(indi->genes[k].geometry.h * rows),0,rows - gene_y_scaled[k]);
   }
-  
+
   for (i = 0; i < rows; i++) {
     for (j = 0; j < cols; j++) {
       color_sum.r = 0;
@@ -154,7 +171,7 @@ individual_to_image(
 	color_sum.b /= (float)intersect_cnt;
 	color_sum.a /= (float)intersect_cnt;
 
-	image_set(new_img,i,j,color_sum);
+	image_set(image,i,j,color_sum);
       }
     }
   }
@@ -163,8 +180,8 @@ individual_to_image(
   free(gene_y_scaled);
   free(gene_w_scaled);
   free(gene_h_scaled);
-
-  return new_img;
+  
+  return image;
 }
 
 individual*
@@ -418,16 +435,14 @@ population_evolve(
 
       individual_copy(pop->indi_descs[new_id].indi,pop->indi_descs[j].indi);
       individual_mutate(pop->indi_descs[new_id].indi);
-      image_free(pop->indi_descs[new_id].image);
-      pop->indi_descs[new_id].image = individual_to_image(pop->indi_descs[new_id].indi,image_get_rows(pop->target),image_get_cols(pop->target));
+      individual_to_image_a(pop->indi_descs[new_id].indi,pop->indi_descs[new_id].image);
       pop->indi_descs[new_id].score = _population_calc_score(pop->indi_descs[new_id].image,pop->target);
     }
   }
 
   for (i = 0; i < pop->mu; i++) {
       individual_mutate(pop->indi_descs[i].indi);
-      image_free(pop->indi_descs[i].image);
-      pop->indi_descs[i].image = individual_to_image(pop->indi_descs[i].indi,image_get_rows(pop->target),image_get_cols(pop->target));
+      individual_to_image_a(pop->indi_descs[i].indi,pop->indi_descs[i].image);
       pop->indi_descs[i].score = _population_calc_score(pop->indi_descs[i].image,pop->target);
   }
 
