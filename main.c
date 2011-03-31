@@ -316,19 +316,12 @@ main(
   config.indi_count = 32;
   config.gene_count = 32;
   config.mu = 4;
-<<<<<<< HEAD
   config.workers_cnt = 2;
   config.evolve_time = 10;
   config.grid_rows = 2;
   config.grid_cols = 8;
   config.exit_on_stop = true;
-=======
-  config.evolve_time = 0;
-  config.grid_rows = 2;
-  config.grid_cols = 8;
-  config.exit_on_stop = true;
   config.draw_skip = 49;
->>>>>>> master
 
   state.pop = population_random(config.indi_count,config.gene_count,config.mu,
 				config.target,config.workers_cnt);
