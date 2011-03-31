@@ -1,10 +1,14 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include <assert.h>
 #include <math.h>
+
+#include <pthread.h>
 
 #include "gastuff.h"
 
 typedef struct _indi_desc  indi_desc;
+typedef struct _worker     worker;
 
 
 struct _individual
@@ -236,20 +240,31 @@ individual_mutate(
 
 struct _indi_desc
 {
-  individual*  indi;
-  image*       image;
-  float        score;
+  individual*   indi;
+  image*        image;
+  float         score;
+};
+
+struct _worker
+{
+  pthread_t     id;
+  population*   parent;
+  int           index;
 };
 
 struct _population
 {
-  int           gene_cnt;
-  int           mu;
-  const image*  target;
-  indi_desc     best;
-  int           indi_desc_cnt;
-  indi_desc*    indi_descs;
-
+  int                gene_cnt;
+  int                mu;
+  const image*       target;
+  indi_desc          best;
+  int                indi_desc_cnt;
+  indi_desc*         indi_descs;
+  int                worker_cnt;
+  worker*            workers;
+  int                indi_per_worker;
+  pthread_barrier_t  b_entry;
+  pthread_barrier_t  b_exit;
 };
 
 
@@ -308,19 +323,54 @@ _population_compare_indi_desc(
   return 0;
 }
 
+static void*
+_population_evolve_worker(
+  void* data)
+{
+  assert(data != NULL);
+
+  worker*  this;
+  int      real_i;
+  int      parent_i;
+  int      i;
+
+  this = (worker*)data;
+
+  while (1) {
+    pthread_barrier_wait(&this->parent->b_entry);
+
+    for (i = 0; i < this->parent->indi_per_worker; i++) {
+      real_i = this->parent->mu + this->index * this->parent->indi_per_worker + i;
+      parent_i = real_i % this->parent->mu;
+
+      individual_copy(this->parent->indi_descs[real_i].indi,this->parent->indi_descs[parent_i].indi);
+      individual_mutate(this->parent->indi_descs[real_i].indi);
+      individual_to_image_a(this->parent->indi_descs[real_i].indi,this->parent->indi_descs[real_i].image);
+      this->parent->indi_descs[real_i].score = _population_calc_score(this->parent->indi_descs[real_i].image,this->parent->target);
+    }
+
+    pthread_barrier_wait(&this->parent->b_exit);
+  }
+
+  return 0;
+}
+
 
 population*
 population_random(
   int indi_cnt,
   int gene_cnt,
   int mu,
-  const image* target)
+  const image* target,
+  int worker_cnt)
 {
   assert(indi_cnt > 0);
   assert(gene_cnt > 0);
   assert(mu > 0);
   assert(image_is_valid(target));
+  assert(worker_cnt > 0);
   assert(indi_cnt % mu == 0);
+  assert((indi_cnt - mu) % worker_cnt == 0);
 
   population*  new_pop;
   int          target_rows;
@@ -339,6 +389,12 @@ population_random(
   new_pop->best.image = individual_to_image(new_pop->best.indi,target_rows,target_cols);
   new_pop->indi_desc_cnt = indi_cnt;
   new_pop->indi_descs = malloc(sizeof(indi_desc) * indi_cnt);
+  new_pop->worker_cnt = worker_cnt;
+  new_pop->workers = malloc(sizeof(worker) * worker_cnt);
+  new_pop->indi_per_worker = (indi_cnt - mu) / worker_cnt;
+
+  pthread_barrier_init(&new_pop->b_entry,NULL,1 + worker_cnt);
+  pthread_barrier_init(&new_pop->b_exit,NULL,1 + worker_cnt);
 
   for (i = 0; i < indi_cnt; i++) {
     new_pop->indi_descs[i].indi = individual_random(gene_cnt);
@@ -351,6 +407,13 @@ population_random(
   individual_copy(new_pop->best.indi,new_pop->indi_descs[0].indi);
   image_copy(new_pop->best.image,new_pop->indi_descs[0].image);
   new_pop->best.score = new_pop->indi_descs[0].score;
+
+  for (i = 0; i < worker_cnt; i++) {
+    new_pop->workers[i].parent = new_pop;
+    new_pop->workers[i].index = i;
+
+    pthread_create(&new_pop->workers[i].id,NULL,_population_evolve_worker,&new_pop->workers[i]);
+  }
 
   return new_pop;
 }
@@ -369,12 +432,25 @@ population_free(
   }
 
   free(pop->indi_descs);
+  
+  for (i = 0; i < pop->worker_cnt; i++) {
+    pthread_cancel(pop->workers[i].id);
+  }
+
+  free(pop->workers);
+
+  pthread_barrier_destroy(&pop->b_entry);
+  pthread_barrier_destroy(&pop->b_exit);
 
   pop->gene_cnt = -1;
   pop->mu = -1;
   pop->target = NULL;
+  /*pop->best*/
   pop->indi_desc_cnt = -1;
   pop->indi_descs = NULL;
+  pop->worker_cnt = -1;
+  pop->workers = NULL;
+  pop->indi_per_worker = -1;
 
   free(pop);
 }
@@ -402,6 +478,18 @@ population_is_valid(
     return false;
   }
 
+  if (!individual_is_valid(pop->best.indi)) {
+    return false;
+  }
+
+  if (!image_is_valid(pop->best.image)) {
+    return false;
+  }
+
+  if (pop->best.score < 0) {
+    return false;
+  }
+
   if (pop->indi_desc_cnt < 1) {
     return false;
   }
@@ -424,6 +512,32 @@ population_is_valid(
     }
   }
 
+  if (pop->worker_cnt < 1) {
+    return false;
+  }
+
+  if (pop->workers == NULL) {
+    return false;
+  }
+
+  for (i = 0; i < pop->worker_cnt; i++) {
+    if (pop->workers[i].parent != pop) {
+      return false;
+    }
+
+    if (pop->workers[i].index < 0) {
+      return false;
+    }
+  }
+
+  if (pop->indi_per_worker < 1) {
+    return false;
+  }
+
+  if (pop->indi_per_worker != (pop->indi_desc_cnt - pop->mu) / pop->worker_cnt) {
+    return false;
+  }
+
   return true;
 }
 
@@ -439,18 +553,8 @@ population_evolve(
   int         i;
   int         j;
 
-  mul_factor = pop->indi_desc_cnt / pop->mu;
-
-  for (i = 1; i < mul_factor; i++) {
-    for (j = 0; j < pop->mu; j++) {
-      new_id = i * pop->mu + j;
-
-      individual_copy(pop->indi_descs[new_id].indi,pop->indi_descs[j].indi);
-      individual_mutate(pop->indi_descs[new_id].indi);
-      individual_to_image_a(pop->indi_descs[new_id].indi,pop->indi_descs[new_id].image);
-      pop->indi_descs[new_id].score = _population_calc_score(pop->indi_descs[new_id].image,pop->target);
-    }
-  }
+  pthread_barrier_wait(&pop->b_entry);
+  pthread_barrier_wait(&pop->b_exit);
 
   for (i = 0; i < pop->mu; i++) {
       individual_mutate(pop->indi_descs[i].indi);

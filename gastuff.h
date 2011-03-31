@@ -22,7 +22,7 @@ image*       individual_to_image_a(const individual* indi, image* image);
 individual*  individual_crossover(individual* target, const individual* parent1, const individual* parent2, const crossmask* mask);
 individual*  individual_mutate(individual* indi);
 
-population*  population_random(int indi_cnt, int gene_cnt, int mu, const image* target);
+population*  population_random(int indi_cnt, int gene_cnt, int mu, const image* target, int worker_cnt);
 void         population_free(population* pop);
 
 bool         population_is_valid(const population* pop);

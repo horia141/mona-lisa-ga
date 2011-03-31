@@ -9,12 +9,13 @@
 #include "image.h"
 #include "gastuff.h"
 
-struct {
+static struct {
   image*        target;
   int           max_iteration;
   int           indi_count;
   int           gene_count;
   int           mu;
+  int           workers_cnt;
   int           evolve_time;
   int           grid_rows;
   int           grid_cols;
@@ -30,7 +31,7 @@ struct {
   } display;
 } config;
 
-struct {
+static struct {
   population*   pop;
   int           curr_iteration;
 } state;
@@ -313,12 +314,14 @@ main(
   config.indi_count = 32;
   config.gene_count = 32;
   config.mu = 4;
+  config.workers_cnt = 2;
   config.evolve_time = 10;
   config.grid_rows = 2;
   config.grid_cols = 8;
-  config.exit_on_stop = false;
+  config.exit_on_stop = true;
 
-  state.pop = population_random(config.indi_count,config.gene_count,config.mu,config.target);
+  state.pop = population_random(config.indi_count,config.gene_count,config.mu,
+				config.target,config.workers_cnt);
   state.curr_iteration = 0;
 
   app_init_display(&argc,argv);
