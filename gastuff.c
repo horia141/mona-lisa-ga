@@ -40,57 +40,6 @@ individual_random(
   return new_indi;
 }
 
-individual*
-individual_mutate(
-  const individual* parent)
-{
-  assert(individual_is_valid(parent));
-
-  individual*  new_indi;
-  int          modif_gene;
-  int          i;
-
-  new_indi = malloc(sizeof(individual) + sizeof(rectangle) * parent->gene_cnt);
-
-  new_indi->gene_cnt = parent->gene_cnt;
-
-  modif_gene = unirandom_i(0,parent->gene_cnt);
-
-  for (i = 0; i < parent->gene_cnt; i++) {
-    if (i != modif_gene) {
-      new_indi->genes[i].geometry.x = parent->genes[i].geometry.x;
-      new_indi->genes[i].geometry.y = parent->genes[i].geometry.y;
-      new_indi->genes[i].geometry.w = parent->genes[i].geometry.w;
-      new_indi->genes[i].geometry.h = parent->genes[i].geometry.h;
-      new_indi->genes[i].color.r = parent->genes[i].color.r;
-      new_indi->genes[i].color.g = parent->genes[i].color.g;
-      new_indi->genes[i].color.b = parent->genes[i].color.b;
-      new_indi->genes[i].color.a = 1;
-    } else {
-      new_indi->genes[modif_gene].geometry.x = clamp_f(parent->genes[modif_gene].geometry.x + unirandom_f(-0.05,0.05),0,0.90);
-      new_indi->genes[modif_gene].geometry.y = clamp_f(parent->genes[modif_gene].geometry.y + unirandom_f(-0.05,0.05),0,0.90);
-      new_indi->genes[modif_gene].geometry.w = clamp_f(parent->genes[modif_gene].geometry.w + unirandom_f(-0.05,0.05),0.05,1 - new_indi->genes[modif_gene].geometry.x);
-      new_indi->genes[modif_gene].geometry.h = clamp_f(parent->genes[modif_gene].geometry.h + unirandom_f(-0.05,0.05),0.05,1 - new_indi->genes[modif_gene].geometry.y);
-      new_indi->genes[modif_gene].color.r = clamp_f(parent->genes[modif_gene].color.r + unirandom_f(-0.05,0.05),0,1);
-      new_indi->genes[modif_gene].color.g = clamp_f(parent->genes[modif_gene].color.g + unirandom_f(-0.05,0.05),0,1);
-      new_indi->genes[modif_gene].color.b = clamp_f(parent->genes[modif_gene].color.b + unirandom_f(-0.05,0.05),0,1);
-      new_indi->genes[modif_gene].color.a = 1;
-      /* new_indi->genes[i].geometry.x = unirandom_f(0,0.94); */
-      /* new_indi->genes[i].geometry.y = unirandom_f(0,0.94); */
-      /* new_indi->genes[i].geometry.w = unirandom_f(0.05,1 - new_indi->genes[i].geometry.x); */
-      /* new_indi->genes[i].geometry.h = unirandom_f(0.05,1 - new_indi->genes[i].geometry.y); */
-      /* new_indi->genes[i].color.r = unirandom_f(0,1); */
-      /* new_indi->genes[i].color.g = unirandom_f(0,1); */
-      /* new_indi->genes[i].color.b = unirandom_f(0,1); */
-      /* new_indi->genes[i].color.a = 1; */
-    }
-  }
-
-
-
-  return new_indi;
-}
-
 void
 individual_free(
   individual* indi)
@@ -101,6 +50,7 @@ individual_free(
 
   free(indi);
 }
+
 
 bool
 individual_is_valid(
@@ -123,6 +73,25 @@ individual_is_valid(
   }
 
   return true;
+}
+
+
+individual*
+individual_copy(
+  individual* dst,
+  const individual* src)
+{
+  assert(individual_is_valid(dst));
+  assert(individual_is_valid(src));
+  assert(dst->gene_cnt == src->gene_cnt);
+
+  int  i;
+
+  for (i = 0; i < dst->gene_cnt; i++) {
+    rectangle_copy(&dst->genes[i],&src->genes[i]);
+  }
+
+  return dst;
 }
 
 image*
@@ -224,6 +193,28 @@ individual_crossover(
   }
 
   return target;
+}
+
+individual*
+individual_mutate(
+  individual* indi)
+{
+  assert(individual_is_valid(indi));
+
+  int  modif_gene;
+
+  modif_gene = unirandom_i(0,indi->gene_cnt);
+
+  indi->genes[modif_gene].geometry.x = clamp_f(indi->genes[modif_gene].geometry.x + unirandom_f(-0.05,0.05),0,0.90);
+  indi->genes[modif_gene].geometry.y = clamp_f(indi->genes[modif_gene].geometry.y + unirandom_f(-0.05,0.05),0,0.90);
+  indi->genes[modif_gene].geometry.w = clamp_f(indi->genes[modif_gene].geometry.w + unirandom_f(-0.05,0.05),0.05,1 - indi->genes[modif_gene].geometry.x);
+  indi->genes[modif_gene].geometry.h = clamp_f(indi->genes[modif_gene].geometry.h + unirandom_f(-0.05,0.05),0.05,1 - indi->genes[modif_gene].geometry.y);
+  indi->genes[modif_gene].color.r = clamp_f(indi->genes[modif_gene].color.r + unirandom_f(-0.05,0.05),0,1);
+  indi->genes[modif_gene].color.g = clamp_f(indi->genes[modif_gene].color.g + unirandom_f(-0.05,0.05),0,1);
+  indi->genes[modif_gene].color.b = clamp_f(indi->genes[modif_gene].color.b + unirandom_f(-0.05,0.05),0,1);
+  indi->genes[modif_gene].color.a = 1;
+
+  return indi;
 }
 
 struct _indi_desc
@@ -414,33 +405,33 @@ population_evolve(
 {
   assert(population_is_valid(pop));
 
-  indi_desc*  new_indi_descs;
   int         mul_factor;
+  int         new_id;
   int         i;
   int         j;
 
-  new_indi_descs = malloc(sizeof(indi_desc) * pop->indi_desc_cnt);
-
   mul_factor = pop->indi_desc_cnt / pop->mu;
 
-  for (i = 0; i < pop->mu; i++) {
-    for (j = 0; j < mul_factor; j++) {
-      new_indi_descs[i * mul_factor + j].indi = individual_mutate(pop->indi_descs[i].indi);
-      new_indi_descs[i * mul_factor + j].image = individual_to_image(new_indi_descs[i * mul_factor + j].indi,image_get_rows(pop->target),image_get_cols(pop->target));
-      new_indi_descs[i * mul_factor + j].score = _population_calc_score(new_indi_descs[i * mul_factor + j].image,pop->target);
+  for (i = 1; i < mul_factor; i++) {
+    for (j = 0; j < pop->mu; j++) {
+      new_id = i * pop->mu + j;
+
+      individual_copy(pop->indi_descs[new_id].indi,pop->indi_descs[j].indi);
+      individual_mutate(pop->indi_descs[new_id].indi);
+      image_free(pop->indi_descs[new_id].image);
+      pop->indi_descs[new_id].image = individual_to_image(pop->indi_descs[new_id].indi,image_get_rows(pop->target),image_get_cols(pop->target));
+      pop->indi_descs[new_id].score = _population_calc_score(pop->indi_descs[new_id].image,pop->target);
     }
   }
 
-  qsort(new_indi_descs,pop->indi_desc_cnt,sizeof(indi_desc),_population_compare_indi_desc);
-
-  for (i = 0; i < pop->indi_desc_cnt; i++) {
-    individual_free(pop->indi_descs[i].indi);
-    image_free(pop->indi_descs[i].image);
+  for (i = 0; i < pop->mu; i++) {
+      individual_mutate(pop->indi_descs[i].indi);
+      image_free(pop->indi_descs[i].image);
+      pop->indi_descs[i].image = individual_to_image(pop->indi_descs[i].indi,image_get_rows(pop->target),image_get_cols(pop->target));
+      pop->indi_descs[i].score = _population_calc_score(pop->indi_descs[i].image,pop->target);
   }
 
-  free(pop->indi_descs);
-
-  pop->indi_descs = new_indi_descs;
+  qsort(pop->indi_descs,pop->indi_desc_cnt,sizeof(indi_desc),_population_compare_indi_desc);
 
   return pop;
 }

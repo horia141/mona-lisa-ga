@@ -11,13 +11,15 @@ typedef struct _population  population;
 typedef struct _crossmask   crossmask;
 
 individual*  individual_random(int gene_cnt);
-individual*  individual_mutate(const individual* parent);
 void         individual_free(individual* indi);
 
 bool         individual_is_valid(const individual* indi);
 
+individual*  individual_copy(individual* dst, const individual* src);
+
 image*       individual_to_image(const individual* indi, int rows, int cols);
 individual*  individual_crossover(individual* target, const individual* parent1, const individual* parent2, const crossmask* mask);
+individual*  individual_mutate(individual* indi);
 
 population*  population_random(int indi_cnt, int gene_cnt, int mu, const image* target);
 void         population_free(population* pop);
