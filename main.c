@@ -319,7 +319,7 @@ main(
   config.grid_rows = 2;
   config.grid_cols = 8;
   config.exit_on_stop = true;
-  config.draw_skip = 49;
+  config.draw_skip = 0;
 
   state.pop = population_random(config.indi_count,config.gene_count,config.mu,config.target);
   state.curr_iteration = 0;

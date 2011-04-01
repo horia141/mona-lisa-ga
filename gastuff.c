@@ -172,6 +172,8 @@ individual_to_image_a(
 	color_sum.a /= (float)intersect_cnt;
 
 	image_set(image,i,j,color_sum);
+      } else {
+	image_set(image,i,j,(color){0,0,0,1});
       }
     }
   }
