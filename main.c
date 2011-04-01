@@ -53,6 +53,8 @@ app_update_cb(
       work_texture = malloc(sizeof(float) * image_get_rows(config.target) * image_get_cols(config.target) * 4);
     }
 
+    memset(work_texture,0,sizeof(float) * image_get_rows(config.target) * image_get_cols(config.target) * 4);
+
     population_evolve(state.pop);
 
     if (state.curr_iteration % (config.draw_skip + 1) == 0) {
@@ -311,17 +313,17 @@ main(
 {
   srandom(time(NULL));
 
-  config.target = image_from_ppm_t("Mondrian.ppm");
-  config.max_iteration = 300;
+  config.target = image_from_ppm_t("MonaLisa.ppm");
+  config.max_iteration = 10000;
   config.indi_count = 32;
-  config.gene_count = 32;
-  config.mu = 4;
+  config.gene_count = 48; 
+  config.mu = 8;
   config.workers_cnt = 2;
   config.evolve_time = 10;
-  config.grid_rows = 2;
-  config.grid_cols = 8;
+  config.grid_rows = 1;
+  config.grid_cols = 4;
   config.exit_on_stop = true;
-  config.draw_skip = 49;
+  config.draw_skip = 0;
 
   state.pop = population_random(config.indi_count,config.gene_count,config.mu,
 				config.target,config.workers_cnt);
