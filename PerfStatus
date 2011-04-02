@@ -7,4 +7,4 @@ Test1   64x74        300              32           32           4    24s        
 Test1   64x74        300              32           32           4    30s              14s             master         Skip some frames @commit "Added frame skipping.".
 Test1   64x74        300              32           32           4    21s              11s             master         Performance tweaking @commit "Performance tweaking.".
 Test1   64x74        300              32           32           4    30s              14s             master         Console mode @commit "Added console mode.".
-Test1   64x74        300              32           32           4    30s              14s             CPU-Parallel   Console mode merge @commit "Merged console mode into CPU-Parallel.".
+Test1   64x74        300              32           32           4    21s              10s             CPU-Parallel   Console mode merge @commit "Merged console mode into CPU-Parallel.".
