@@ -9,7 +9,7 @@
 #include "image.h"
 #include "gastuff.h"
 
-struct {
+static struct {
   bool          console_mode;
   image*        target;
   int           max_iteration;
@@ -32,7 +32,7 @@ struct {
   } display;
 } config;
 
-struct {
+static struct {
   population*   pop;
   int           curr_iteration;
 } state;
