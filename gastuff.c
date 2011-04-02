@@ -431,6 +431,10 @@ population_free(
   for (i = 0; i < pop->indi_desc_cnt; i++) {
     individual_free(pop->indi_descs[i].indi);
     image_free(pop->indi_descs[i].image);
+
+    pop->indi_descs[i].indi = NULL;
+    pop->indi_descs[i].image = NULL;
+    pop->indi_descs[i].score = -1;
   }
 
   free(pop->indi_descs);
@@ -444,10 +448,15 @@ population_free(
   pthread_barrier_destroy(&pop->b_entry);
   pthread_barrier_destroy(&pop->b_exit);
 
+  individual_free(pop->best.indi);
+  image_free(pop->best.image);
+
   pop->gene_cnt = -1;
   pop->mu = -1;
   pop->target = NULL;
-  /*pop->best*/
+  pop->best.indi = NULL;
+  pop->best.image = NULL;
+  pop->best.score = -1;
   pop->indi_desc_cnt = -1;
   pop->indi_descs = NULL;
   pop->worker_cnt = -1;

@@ -10,6 +10,7 @@
 #include "gastuff.h"
 
 static struct {
+  bool          console_mode;
   image*        target;
   int           max_iteration;
   int           indi_count;
@@ -306,6 +307,33 @@ app_run()
   glutMainLoop();
 }
 
+void
+app_free_display()
+{
+  free(config.display.grid_places[0]);
+  free(config.display.grid_places);
+  free(config.display.grid_tids[0]);
+  free(config.display.grid_tids);
+}
+
+void
+con_run()
+{
+  printf("Not Started\n");
+
+  while (state.curr_iteration < config.max_iteration) {
+    population_evolve(state.pop);
+
+    if (state.curr_iteration % (config.draw_skip + 1) == 0) {
+      printf("Running: Iteration #%d/%d\n",state.curr_iteration + 1,config.max_iteration);
+    }
+
+    state.curr_iteration += 1;
+  }
+
+  printf("Stopped\n");
+}
+
 int
 main(
   int argc,
@@ -313,11 +341,12 @@ main(
 {
   srandom(time(NULL));
 
-  config.target = image_from_ppm_t("MonaLisa.ppm");
-  config.max_iteration = 10000;
+  config.console_mode = true;
+  config.target = image_from_ppm_t("Mondrian.ppm");
+  config.max_iteration = 300;
   config.indi_count = 32;
-  config.gene_count = 48; 
-  config.mu = 8;
+  config.gene_count = 32; 
+  config.mu = 4;
   config.workers_cnt = 2;
   config.evolve_time = 10;
   config.grid_rows = 1;
@@ -329,15 +358,16 @@ main(
 				config.target,config.workers_cnt);
   state.curr_iteration = 0;
 
-  app_init_display(&argc,argv);
-  app_run();
+  if (!config.console_mode) {
+    app_init_display(&argc,argv);
+    app_run();
+    app_free_display();
+  } else {
+    con_run();
+  }
 
   population_free(state.pop);
   image_free(config.target);
-  free(config.display.grid_places[0]);
-  free(config.display.grid_places);
-  free(config.display.grid_tids[0]);
-  free(config.display.grid_tids);
 
   return 0;
 }
