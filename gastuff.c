@@ -10,11 +10,44 @@
 typedef struct _indi_desc  indi_desc;
 typedef struct _worker     worker;
 
+gene*
+gene_copy(
+  gene* dst,
+  const gene* src)
+{
+  assert(gene_is_valid(dst));
+  assert(gene_is_valid(src));
+
+  rectangle_overwrite(&dst->geometry,&src->geometry);
+  color_overwrite(&dst->color,&src->color);
+
+  return dst;
+}
+
+bool
+gene_is_valid(
+  const gene* r)
+{
+  if (r == NULL) {
+    return false;
+  }
+
+  if (!rectangle_is_valid(&r->geometry)) {
+    return false;
+  }
+
+  if (!color_is_valid(&r->color)) {
+    return false;
+  }
+
+  return true;
+}
+
 
 struct _individual
 {
   int         gene_cnt;
-  rectangle   genes[];
+  gene   genes[];
 };
 
 individual*
@@ -26,7 +59,7 @@ individual_random(
   individual*  new_indi;
   int          i;
 
-  new_indi = malloc(sizeof(individual) + sizeof(rectangle) * gene_cnt);
+  new_indi = malloc(sizeof(individual) + sizeof(gene) * gene_cnt);
 
   new_indi->gene_cnt = gene_cnt;
 
@@ -71,7 +104,7 @@ individual_is_valid(
   }
 
   for (i = 0; i < indi->gene_cnt; i++) {
-    if (!rectangle_is_valid(&indi->genes[i])) {
+    if (!gene_is_valid(&indi->genes[i])) {
       return false;
     }
   }
@@ -92,7 +125,7 @@ individual_copy(
   int  i;
 
   for (i = 0; i < dst->gene_cnt; i++) {
-    rectangle_copy(&dst->genes[i],&src->genes[i]);
+    gene_copy(&dst->genes[i],&src->genes[i]);
   }
 
   return dst;
@@ -110,7 +143,7 @@ individual_to_image(
 
   image*  new_img;
 
-  new_img = image_blank(rows,cols,(color){0,0,0,1});
+  new_img = image_make_blank(rows,cols,&(color){0,0,0,1});
   
   return individual_to_image_a(indi,new_img);
 }
@@ -175,9 +208,9 @@ individual_to_image_a(
 	color_sum.b /= (float)intersect_cnt;
 	color_sum.a /= (float)intersect_cnt;
 
-	image_set(image,i,j,color_sum);
+	image_set(image,i,j,&color_sum);
       } else {
-	image_set(image,i,j,(color){0,0,0,1});
+	image_set(image,i,j,&(color){0,0,0,1});
       }
     }
   }
@@ -209,9 +242,9 @@ individual_crossover(
 
   for (i = 0; i < target->gene_cnt; i++) {
     if (crossmask_get(mask,i) == true) {
-      rectangle_copy(&target->genes[i],&parent1->genes[i]);
+      gene_copy(&target->genes[i],&parent1->genes[i]);
     } else {
-      rectangle_copy(&target->genes[i],&parent2->genes[i]);
+      gene_copy(&target->genes[i],&parent2->genes[i]);
     }
   }
 
@@ -280,13 +313,13 @@ _population_calc_score(
   assert(image_get_rows(indi_image) == image_get_rows(target));
   assert(image_get_cols(indi_image) == image_get_cols(target));
 
-  float  score;
-  color  tmp_a;
-  color  tmp_b;
-  int    rows;
-  int    cols;
-  int    i;
-  int    j;
+  float         score;
+  const color*  tmp_a;
+  const color*  tmp_b;
+  int           rows;
+  int           cols;
+  int           i;
+  int           j;
 
   score = 0;
   rows = image_get_rows(indi_image);
@@ -296,7 +329,7 @@ _population_calc_score(
     for (j = 0; j < cols; j++) {
       tmp_a = image_get(indi_image,i,j);
       tmp_b = image_get(target,i,j);
-      score += color_distance(&tmp_a,&tmp_b);
+      score += color_distance(tmp_a,tmp_b);
     }
   }
 
@@ -407,7 +440,7 @@ population_random(
   qsort(new_pop->indi_descs,new_pop->indi_desc_cnt,sizeof(indi_desc),_population_compare_indi_desc);
 
   individual_copy(new_pop->best.indi,new_pop->indi_descs[0].indi);
-  image_copy(new_pop->best.image,new_pop->indi_descs[0].image);
+  image_overwrite(new_pop->best.image,new_pop->indi_descs[0].image);
   new_pop->best.score = new_pop->indi_descs[0].score;
 
   for (i = 0; i < worker_cnt; i++) {
@@ -577,7 +610,7 @@ population_evolve(
 
   if (pop->indi_descs[0].score < pop->best.score) {
     individual_copy(pop->best.indi,pop->indi_descs[0].indi);
-    image_copy(pop->best.image,pop->indi_descs[0].image);
+    image_overwrite(pop->best.image,pop->indi_descs[0].image);
     pop->best.score = pop->indi_descs[0].score;
   }
 
