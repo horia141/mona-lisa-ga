@@ -3,12 +3,25 @@
 
 #include <stdbool.h>
 
-#include "common.h"
-#include "image.h"
+#include "ext/snt/utils.h"
+#include "ext/snt/color.h"
+#include "ext/snt/rectangle.h"
+#include "ext/snt/image.h"
 
+typedef struct _gene        gene;
 typedef struct _individual  individual;
 typedef struct _population  population;
 typedef struct _crossmask   crossmask;
+
+struct _gene
+{
+  rectangle  geometry;
+  color      color;
+};
+
+gene*        gene_copy(gene* dst, const gene* src);
+bool         gene_is_valid(const gene* r);
+
 
 individual*  individual_random(int gene_cnt);
 void         individual_free(individual* indi);
@@ -22,7 +35,7 @@ image*       individual_to_image_a(const individual* indi, image* image);
 individual*  individual_crossover(individual* target, const individual* parent1, const individual* parent2, const crossmask* mask);
 individual*  individual_mutate(individual* indi);
 
-population*  population_random(int indi_cnt, int gene_cnt, int mu, const image* target);
+population*  population_random(int indi_cnt, int gene_cnt, int mu, const image* target, int worker_cnt);
 void         population_free(population* pop);
 
 bool         population_is_valid(const population* pop);

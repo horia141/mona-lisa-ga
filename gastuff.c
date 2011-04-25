@@ -1,16 +1,53 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include <assert.h>
 #include <math.h>
+
+#include <pthread.h>
 
 #include "gastuff.h"
 
 typedef struct _indi_desc  indi_desc;
+typedef struct _worker     worker;
+
+gene*
+gene_copy(
+  gene* dst,
+  const gene* src)
+{
+  assert(gene_is_valid(dst));
+  assert(gene_is_valid(src));
+
+  rectangle_overwrite(&dst->geometry,&src->geometry);
+  color_overwrite(&dst->color,&src->color);
+
+  return dst;
+}
+
+bool
+gene_is_valid(
+  const gene* r)
+{
+  if (r == NULL) {
+    return false;
+  }
+
+  if (!rectangle_is_valid(&r->geometry)) {
+    return false;
+  }
+
+  if (!color_is_valid(&r->color)) {
+    return false;
+  }
+
+  return true;
+}
 
 
 struct _individual
 {
   int         gene_cnt;
-  rectangle   genes[];
+  gene   genes[];
 };
 
 individual*
@@ -22,7 +59,7 @@ individual_random(
   individual*  new_indi;
   int          i;
 
-  new_indi = malloc(sizeof(individual) + sizeof(rectangle) * gene_cnt);
+  new_indi = malloc(sizeof(individual) + sizeof(gene) * gene_cnt);
 
   new_indi->gene_cnt = gene_cnt;
 
@@ -67,7 +104,7 @@ individual_is_valid(
   }
 
   for (i = 0; i < indi->gene_cnt; i++) {
-    if (!rectangle_is_valid(&indi->genes[i])) {
+    if (!gene_is_valid(&indi->genes[i])) {
       return false;
     }
   }
@@ -88,7 +125,7 @@ individual_copy(
   int  i;
 
   for (i = 0; i < dst->gene_cnt; i++) {
-    rectangle_copy(&dst->genes[i],&src->genes[i]);
+    gene_copy(&dst->genes[i],&src->genes[i]);
   }
 
   return dst;
@@ -106,7 +143,7 @@ individual_to_image(
 
   image*  new_img;
 
-  new_img = image_blank(rows,cols,(color){0,0,0,1});
+  new_img = image_make_blank(rows,cols,&(color){0,0,0,1});
   
   return individual_to_image_a(indi,new_img);
 }
@@ -171,9 +208,9 @@ individual_to_image_a(
 	color_sum.b /= (float)intersect_cnt;
 	color_sum.a /= (float)intersect_cnt;
 
-	image_set(image,i,j,color_sum);
+	image_set(image,i,j,&color_sum);
       } else {
-	image_set(image,i,j,(color){0,0,0,1});
+	image_set(image,i,j,&(color){0,0,0,1});
       }
     }
   }
@@ -205,9 +242,9 @@ individual_crossover(
 
   for (i = 0; i < target->gene_cnt; i++) {
     if (crossmask_get(mask,i) == true) {
-      rectangle_copy(&target->genes[i],&parent1->genes[i]);
+      gene_copy(&target->genes[i],&parent1->genes[i]);
     } else {
-      rectangle_copy(&target->genes[i],&parent2->genes[i]);
+      gene_copy(&target->genes[i],&parent2->genes[i]);
     }
   }
 
@@ -238,20 +275,31 @@ individual_mutate(
 
 struct _indi_desc
 {
-  individual*  indi;
-  image*       image;
-  float        score;
+  individual*   indi;
+  image*        image;
+  float         score;
+};
+
+struct _worker
+{
+  pthread_t     id;
+  population*   parent;
+  int           index;
 };
 
 struct _population
 {
-  int           gene_cnt;
-  int           mu;
-  const image*  target;
-  indi_desc     best;
-  int           indi_desc_cnt;
-  indi_desc*    indi_descs;
-
+  int                gene_cnt;
+  int                mu;
+  const image*       target;
+  indi_desc          best;
+  int                indi_desc_cnt;
+  indi_desc*         indi_descs;
+  int                worker_cnt;
+  worker*            workers;
+  int                indi_per_worker;
+  pthread_barrier_t  b_entry;
+  pthread_barrier_t  b_exit;
 };
 
 
@@ -265,13 +313,13 @@ _population_calc_score(
   assert(image_get_rows(indi_image) == image_get_rows(target));
   assert(image_get_cols(indi_image) == image_get_cols(target));
 
-  float  score;
-  color  tmp_a;
-  color  tmp_b;
-  int    rows;
-  int    cols;
-  int    i;
-  int    j;
+  float         score;
+  const color*  tmp_a;
+  const color*  tmp_b;
+  int           rows;
+  int           cols;
+  int           i;
+  int           j;
 
   score = 0;
   rows = image_get_rows(indi_image);
@@ -281,7 +329,7 @@ _population_calc_score(
     for (j = 0; j < cols; j++) {
       tmp_a = image_get(indi_image,i,j);
       tmp_b = image_get(target,i,j);
-      score += color_distance(&tmp_a,&tmp_b);
+      score += color_distance(tmp_a,tmp_b);
     }
   }
 
@@ -310,19 +358,54 @@ _population_compare_indi_desc(
   return 0;
 }
 
+static void*
+_population_evolve_worker(
+  void* data)
+{
+  assert(data != NULL);
+
+  worker*  this;
+  int      real_i;
+  int      parent_i;
+  int      i;
+
+  this = (worker*)data;
+
+  while (1) {
+    pthread_barrier_wait(&this->parent->b_entry);
+
+    for (i = 0; i < this->parent->indi_per_worker; i++) {
+      real_i = this->parent->mu + this->index * this->parent->indi_per_worker + i;
+      parent_i = real_i % this->parent->mu;
+
+      individual_copy(this->parent->indi_descs[real_i].indi,this->parent->indi_descs[parent_i].indi);
+      individual_mutate(this->parent->indi_descs[real_i].indi);
+      individual_to_image_a(this->parent->indi_descs[real_i].indi,this->parent->indi_descs[real_i].image);
+      this->parent->indi_descs[real_i].score = _population_calc_score(this->parent->indi_descs[real_i].image,this->parent->target);
+    }
+
+    pthread_barrier_wait(&this->parent->b_exit);
+  }
+
+  return 0;
+}
+
 
 population*
 population_random(
   int indi_cnt,
   int gene_cnt,
   int mu,
-  const image* target)
+  const image* target,
+  int worker_cnt)
 {
   assert(indi_cnt > 0);
   assert(gene_cnt > 0);
   assert(mu > 0);
   assert(image_is_valid(target));
+  assert(worker_cnt > 0);
   assert(indi_cnt % mu == 0);
+  assert((indi_cnt - mu) % worker_cnt == 0);
 
   population*  new_pop;
   int          target_rows;
@@ -341,6 +424,12 @@ population_random(
   new_pop->best.image = individual_to_image(new_pop->best.indi,target_rows,target_cols);
   new_pop->indi_desc_cnt = indi_cnt;
   new_pop->indi_descs = malloc(sizeof(indi_desc) * indi_cnt);
+  new_pop->worker_cnt = worker_cnt;
+  new_pop->workers = malloc(sizeof(worker) * worker_cnt);
+  new_pop->indi_per_worker = (indi_cnt - mu) / worker_cnt;
+
+  pthread_barrier_init(&new_pop->b_entry,NULL,1 + worker_cnt);
+  pthread_barrier_init(&new_pop->b_exit,NULL,1 + worker_cnt);
 
   for (i = 0; i < indi_cnt; i++) {
     new_pop->indi_descs[i].indi = individual_random(gene_cnt);
@@ -351,8 +440,15 @@ population_random(
   qsort(new_pop->indi_descs,new_pop->indi_desc_cnt,sizeof(indi_desc),_population_compare_indi_desc);
 
   individual_copy(new_pop->best.indi,new_pop->indi_descs[0].indi);
-  image_copy(new_pop->best.image,new_pop->indi_descs[0].image);
+  image_overwrite(new_pop->best.image,new_pop->indi_descs[0].image);
   new_pop->best.score = new_pop->indi_descs[0].score;
+
+  for (i = 0; i < worker_cnt; i++) {
+    new_pop->workers[i].parent = new_pop;
+    new_pop->workers[i].index = i;
+
+    pthread_create(&new_pop->workers[i].id,NULL,_population_evolve_worker,&new_pop->workers[i]);
+  }
 
   return new_pop;
 }
@@ -375,6 +471,15 @@ population_free(
   }
 
   free(pop->indi_descs);
+  
+  for (i = 0; i < pop->worker_cnt; i++) {
+    pthread_cancel(pop->workers[i].id);
+  }
+
+  free(pop->workers);
+
+  pthread_barrier_destroy(&pop->b_entry);
+  pthread_barrier_destroy(&pop->b_exit);
 
   individual_free(pop->best.indi);
   image_free(pop->best.image);
@@ -387,6 +492,9 @@ population_free(
   pop->best.score = -1;
   pop->indi_desc_cnt = -1;
   pop->indi_descs = NULL;
+  pop->worker_cnt = -1;
+  pop->workers = NULL;
+  pop->indi_per_worker = -1;
 
   free(pop);
 }
@@ -414,6 +522,18 @@ population_is_valid(
     return false;
   }
 
+  if (!individual_is_valid(pop->best.indi)) {
+    return false;
+  }
+
+  if (!image_is_valid(pop->best.image)) {
+    return false;
+  }
+
+  if (pop->best.score < 0) {
+    return false;
+  }
+
   if (pop->indi_desc_cnt < 1) {
     return false;
   }
@@ -436,6 +556,32 @@ population_is_valid(
     }
   }
 
+  if (pop->worker_cnt < 1) {
+    return false;
+  }
+
+  if (pop->workers == NULL) {
+    return false;
+  }
+
+  for (i = 0; i < pop->worker_cnt; i++) {
+    if (pop->workers[i].parent != pop) {
+      return false;
+    }
+
+    if (pop->workers[i].index < 0) {
+      return false;
+    }
+  }
+
+  if (pop->indi_per_worker < 1) {
+    return false;
+  }
+
+  if (pop->indi_per_worker != (pop->indi_desc_cnt - pop->mu) / pop->worker_cnt) {
+    return false;
+  }
+
   return true;
 }
 
@@ -451,18 +597,8 @@ population_evolve(
   int         i;
   int         j;
 
-  mul_factor = pop->indi_desc_cnt / pop->mu;
-
-  for (i = 1; i < mul_factor; i++) {
-    for (j = 0; j < pop->mu; j++) {
-      new_id = i * pop->mu + j;
-
-      individual_copy(pop->indi_descs[new_id].indi,pop->indi_descs[j].indi);
-      individual_mutate(pop->indi_descs[new_id].indi);
-      individual_to_image_a(pop->indi_descs[new_id].indi,pop->indi_descs[new_id].image);
-      pop->indi_descs[new_id].score = _population_calc_score(pop->indi_descs[new_id].image,pop->target);
-    }
-  }
+  pthread_barrier_wait(&pop->b_entry);
+  pthread_barrier_wait(&pop->b_exit);
 
   for (i = 0; i < pop->mu; i++) {
       individual_mutate(pop->indi_descs[i].indi);
@@ -474,7 +610,7 @@ population_evolve(
 
   if (pop->indi_descs[0].score < pop->best.score) {
     individual_copy(pop->best.indi,pop->indi_descs[0].indi);
-    image_copy(pop->best.image,pop->indi_descs[0].image);
+    image_overwrite(pop->best.image,pop->indi_descs[0].image);
     pop->best.score = pop->indi_descs[0].score;
   }
 
